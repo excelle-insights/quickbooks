@@ -22,9 +22,9 @@ class QuickBooksManager
         $this->companyId = $companyId ?? getenv('QBO_REALM_ID');
 
         if (!$pdo) {
-            $dsn  = getenv('DB_DSN');
-            $user = getenv('DB_USER');
-            $pass = getenv('DB_PASSWORD');
+            $dsn  = $_ENV['DB_DSN'] ?? null;
+            $user = $_ENV['DB_USER'] ?? null;
+            $pass = $_ENV['DB_PASSWORD'] ?? null;
 
             if (!$dsn) {
                 throw new \RuntimeException(
