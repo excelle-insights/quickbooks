@@ -14,8 +14,8 @@ class Authentication
 
     public function getAuthUrl(): string
     {
-        $clientId = getenv('QBO_CLIENT_ID');
-        $redirectUri = getenv('QBO_REDIRECT_URI');
+        $clientId = $_ENV['QBO_CLIENT_ID'] ?? '';
+        $redirectUri = $_ENV['QBO_REDIRECT_URI'] ?? '';
         $scope = 'com.intuit.quickbooks.accounting';
 
         return "https://appcenter.intuit.com/connect/oauth2?client_id={$clientId}&redirect_uri={$redirectUri}&response_type=code&scope={$scope}&state=state123";
@@ -69,7 +69,7 @@ class Authentication
                 'Accept: application/json',
                 'Content-Type: application/x-www-form-urlencoded',
                 'Authorization: Basic ' . base64_encode(
-                    getenv('QBO_CLIENT_ID') . ':' . getenv('QBO_CLIENT_SECRET')
+                    $_ENV['QBO_CLIENT_ID'] . ':' . $_ENV['QBO_CLIENT_SECRET']
                 ),
             ],
         ]);
@@ -93,7 +93,7 @@ class Authentication
         $postData = http_build_query([
             'grant_type' => 'authorization_code',
             'code' => $code,
-            'redirect_uri' => getenv('QBO_REDIRECT_URI')
+            'redirect_uri' => $_ENV['QBO_REDIRECT_URI'] ?? '',
         ]);
 
         $ch = curl_init($url);
@@ -105,7 +105,7 @@ class Authentication
                 'Accept: application/json',
                 'Content-Type: application/x-www-form-urlencoded',
                 'Authorization: Basic ' . base64_encode(
-                    getenv('QBO_CLIENT_ID') . ':' . getenv('QBO_CLIENT_SECRET')
+                    $_ENV['QBO_CLIENT_ID'] . ':' . $_ENV['QBO_CLIENT_SECRET']
                 ),
             ],
         ]);
