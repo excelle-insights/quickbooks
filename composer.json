@@ -8,7 +8,7 @@
         "ext-json": "*",
         "guzzlehttp/guzzle": "^7.0",
         "symfony/process": "^8.0",
-        "robmorgan/phinx": "^0.16.10",
+        "robmorgan/phinx": "^0.16.9",
         "quickbooks/v3-php-sdk": "^6.2",
         "vlucas/phpdotenv": "^5.6"
     },
