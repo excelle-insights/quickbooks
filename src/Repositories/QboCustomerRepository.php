@@ -16,20 +16,32 @@ class QboCustomerRepository
         $stmt = $this->pdo->prepare("
             INSERT INTO qbo_customers (
                 qbo_company_id,
+                name,
                 display_name,
                 email,
                 phone,
+                company_name,
+                country,
+                city,
+                postal_code,
+                line,
                 active,
                 created_at,
                 updated_at
-            ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
 
         $stmt->execute([
             $data['qbo_company_id'],
-            $data['display_name'],
+            $data['name'],
+            $data['display_name'] ?? $data['name'],
             $data['email'] ?? null,
             $data['phone'] ?? null,
+            $data['company_name'] ?? null,
+            $data['country'] ?? null,
+            $data['city'] ?? null,
+            $data['postal_code'] ?? null,
+            $data['line'] ?? null,
             $data['active'] ?? true,
         ]);
 
@@ -61,18 +73,30 @@ class QboCustomerRepository
         $stmt = $this->pdo->prepare("
             UPDATE qbo_customers
             SET
+                name = ?,
                 display_name = ?,
                 email = ?,
                 phone = ?,
+                company_name = ?,
+                country = ?,
+                city = ?,
+                postal_code = ?,
+                line = ?,
                 active = ?,
                 updated_at = NOW()
             WHERE id = ?
         ");
 
         $stmt->execute([
-            $data['display_name'],
+            $data['name'],
+            $data['display_name'] ?? $data['name'],
             $data['email'] ?? null,
             $data['phone'] ?? null,
+            $data['company_name'] ?? null,
+            $data['country'] ?? null,
+            $data['city'] ?? null,
+            $data['postal_code'] ?? null,
+            $data['line'] ?? null,
             $data['active'] ?? true,
             $id
         ]);
