@@ -40,7 +40,7 @@ $tempConfig = sys_get_temp_dir() . '/quickbooks_phinx.php';
 file_put_contents($tempConfig, "<?php
 return [
     'paths' => [
-        'migrations' => '{$projectRoot}/vendor/your-vendor/quickbooks/database/migrations',
+        'migrations' => '{$projectRoot}/vendor/excelle-insights/quickbooks/database/migrations',
     ],
     'environments' => [
         'default_migration_table' => 'phinxlog',
