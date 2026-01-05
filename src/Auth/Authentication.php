@@ -1,0 +1,78 @@
+<?php
+
+namespace ExcelleInsights\QuickBooks\Auth;
+
+use ExcelleInsights\QuickBooks\Repositories\TokenRepository;
+
+class Authentication
+{
+    public function __construct(
+        private TokenRepository $tokens,
+        private string $app,
+        private string $userId
+    ) {}
+
+    public function accessToken(): string
+    {
+        $record = $this->tokens->getLatest($this->app, $this->userId);
+
+        if (!$record) {
+            throw new \RuntimeException('No access token found');
+        }
+
+        $token = json_decode($record->access_token, true);
+        $updatedAt = strtotime($record->updated_at);
+
+        // Token still valid
+        if ((time() - $updatedAt) < 3500) {
+            return $token['access_token'];
+        }
+
+        // Refresh
+        $newToken = $this->refreshToken($token['refresh_token']);
+
+        $payload = [
+            'access_token'  => $newToken['access_token'],
+            'refresh_token' => $newToken['refresh_token'],
+            'realmId'       => $token['realmId'],
+        ];
+
+        $this->tokens->save($this->app, $this->userId, $payload);
+
+        return $payload['access_token'];
+    }
+
+    private function refreshToken(string $refreshToken): array
+    {
+        $url = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
+
+        $postData = http_build_query([
+            'grant_type'    => 'refresh_token',
+            'refresh_token' => $refreshToken,
+        ]);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => $postData,
+            CURLOPT_HTTPHEADER     => [
+                'Accept: application/json',
+                'Content-Type: application/x-www-form-urlencoded',
+                'Authorization: Basic ' . base64_encode(
+                    getenv('QBO_CLIENT_ID') . ':' . getenv('QBO_CLIENT_SECRET')
+                ),
+            ],
+        ]);
+
+        $response = curl_exec($ch);
+
+        if ($response === false) {
+            throw new \RuntimeException(curl_error($ch));
+        }
+
+        curl_close($ch);
+
+        return json_decode($response, true);
+    }
+}
