@@ -18,8 +18,8 @@ class QuickBooksManager
     {
         EnvLoader::load($envRoot);
 
-        $this->baseUrl   = getenv('QBO_BASE_URL') ?: '';
-        $this->companyId = $companyId ?? getenv('QBO_REALM_ID');
+        $this->baseUrl   = $_ENV['QBO_BASE_URL'] ?? '' ?: 'https://quickbooks.api.intuit.com/v3/company/';
+        $this->companyId = $companyId ?? $_ENV['QBO_REALM_ID'] ?? null;
 
         if (!$pdo) {
             $dsn  = $_ENV['DB_DSN'] ?? null;
