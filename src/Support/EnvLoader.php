@@ -9,7 +9,7 @@ class EnvLoader
     {
         // Only load once
         if (!defined('QBO_ENV_LOADED')) {
-            $dir = dirname(__DIR__, 1); // path to package root
+            $dir = dirname(__DIR__, 2); // path to package root
             $dotenv = Dotenv::createImmutable($dir);
             $dotenv->load();
             define('QBO_ENV_LOADED', true);
