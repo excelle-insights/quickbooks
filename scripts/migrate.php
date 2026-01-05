@@ -2,10 +2,10 @@
 <?php
 declare(strict_types=1);
 
-require __DIR__ . '/../../vendor/autoload.php';
+require dirname(__DIR__, 3) . '/vendor/autoload.php';
 use Symfony\Component\Process\Process;
 
-$projectRoot = realpath(__DIR__ . '/../../');
+$projectRoot = realpath(dirname(__DIR__, 4));
 $dbConfigFile = $projectRoot . '/config/env/.database.json';
 
 // 1️⃣ Load DB config
