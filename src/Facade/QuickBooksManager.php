@@ -36,6 +36,11 @@ class QuickBooksManager
         );
     }
 
+    public function getAuthUrl(): string
+    {
+        return $this->auth->getAuthUrl();
+    }
+    
     public function customers(): CustomerClient
     {
         return new CustomerClient(

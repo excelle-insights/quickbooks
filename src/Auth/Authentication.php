@@ -12,6 +12,15 @@ class Authentication
         private string $userId
     ) {}
 
+    public function getAuthUrl(): string
+    {
+        $clientId = getenv('QBO_CLIENT_ID');
+        $redirectUri = getenv('QBO_REDIRECT_URI');
+        $scope = 'com.intuit.quickbooks.accounting';
+
+        return "https://appcenter.intuit.com/connect/oauth2?client_id={$clientId}&redirect_uri={$redirectUri}&response_type=code&scope={$scope}&state=state123";
+    }
+
     public function accessToken(): string
     {
         $record = $this->tokens->getLatest($this->app, $this->userId);
