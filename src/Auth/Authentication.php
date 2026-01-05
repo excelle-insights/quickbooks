@@ -80,8 +80,6 @@ class Authentication
             throw new \RuntimeException(curl_error($ch));
         }
 
-        curl_close($ch);
-
         return json_decode($response, true);
     }
 

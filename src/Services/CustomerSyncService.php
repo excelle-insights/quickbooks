@@ -40,6 +40,7 @@ class CustomerSyncService
             ];
 
         } catch (\Throwable $e) {
+            error_log("QBO Customer sync failed: " . $e->getMessage());
             // 4️⃣ Leave unsynced, retry later
             return (object)[
                 'status'   => 'pending',
