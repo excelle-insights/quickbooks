@@ -17,6 +17,11 @@
             "ExcelleInsights\\QuickBooks\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "ExcelleInsights\\QuickBooks\\Tests\\": "tests/"
+        }
+    },
     "require-dev": {
         "phpunit/phpunit": "^10.0"
     },

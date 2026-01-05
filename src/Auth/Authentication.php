@@ -84,4 +84,41 @@ class Authentication
 
         return json_decode($response, true);
     }
+
+    public function exchangeAuthorizationCode(string $code, string $realmId): void
+    {
+        // Call QuickBooks token endpoint
+        $url = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
+
+        $postData = http_build_query([
+            'grant_type' => 'authorization_code',
+            'code' => $code,
+            'redirect_uri' => getenv('QBO_REDIRECT_URI')
+        ]);
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $postData,
+            CURLOPT_HTTPHEADER => [
+                'Accept: application/json',
+                'Content-Type: application/x-www-form-urlencoded',
+                'Authorization: Basic ' . base64_encode(
+                    getenv('QBO_CLIENT_ID') . ':' . getenv('QBO_CLIENT_SECRET')
+                ),
+            ],
+        ]);
+
+        $response = curl_exec($ch);
+        if ($response === false) {
+            throw new \RuntimeException(curl_error($ch));
+        }
+        curl_close($ch);
+
+        $token = json_decode($response, true);
+
+        // Store in DB
+        $this->tokens->save('quickbooks', 'quickbooks', $token);
+    }
 }

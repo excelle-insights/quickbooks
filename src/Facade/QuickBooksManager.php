@@ -1,4 +1,5 @@
 <?php
+
 namespace ExcelleInsights\QuickBooks\Facade;
 
 use PDO;
@@ -40,7 +41,13 @@ class QuickBooksManager
     {
         return $this->auth->getAuthUrl();
     }
-    
+
+    public function authenticate(string $code, string $realmId): void
+    {
+        $this->auth->exchangeAuthorizationCode($code, $realmId);
+    }
+
+
     public function customers(): CustomerClient
     {
         return new CustomerClient(
