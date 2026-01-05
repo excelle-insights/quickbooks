@@ -24,23 +24,16 @@ class QuickBooksManager
         $this->baseUrl   = $_ENV['QBO_BASE_URL'] ?? '' ?: 'https://quickbooks.api.intuit.com/v3/company/';
         $this->companyId = $companyId ?? $_ENV['QBO_REALM_ID'] ?? null;
 
-        if (!$pdo) {
-            $dsn  = $_ENV['DB_DSN'] ?? null;
-            $user = $_ENV['DB_USER'] ?? null;
-            $pass = $_ENV['DB_PASSWORD'] ?? null;
-
-            if (!$dsn) {
-                throw new \RuntimeException(
-                    'DB_DSN is not set. Ensure your project .env exists and is readable.'
-                );
-            }
-
-            $pdo = new PDO($dsn, $user, $pass, [
+        $this->pdo = $pdo ?? new PDO(
+            getenv('DB_DSN'),
+            getenv('DB_USER'),
+            getenv('DB_PASSWORD'),
+            [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            ]);
-        }
+            ]
+        );
 
-        $repo = new TokenRepository($pdo);
+        $repo = new TokenRepository($this->pdo);
 
         $this->auth = new Authentication(
             $repo,
