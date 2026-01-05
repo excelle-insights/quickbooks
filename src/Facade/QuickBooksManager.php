@@ -7,10 +7,13 @@ use ExcelleInsights\QuickBooks\Auth\Authentication;
 use ExcelleInsights\QuickBooks\Client\CustomerClient;
 use ExcelleInsights\QuickBooks\Repositories\TokenRepository;
 use ExcelleInsights\QuickBooks\Support\EnvLoader;
+use ExcelleInsights\QuickBooks\Repositories\QboCustomerRepository;
+use ExcelleInsights\QuickBooks\Services\CustomerSyncService;
 
 class QuickBooksManager
 {
     private Authentication $auth;
+    private PDO $pdo;
     private string $baseUrl;
     private string $companyId;
 
@@ -64,5 +67,17 @@ class QuickBooksManager
             $this->companyId,
             $this->auth
         );
+    }
+
+    public function createCustomer(array $data): object
+    {
+        $repo = new QboCustomerRepository($this->pdo);
+
+        $service = new CustomerSyncService(
+            $repo,
+            $this->customers()
+        );
+
+        return $service->create($data);
     }
 }
