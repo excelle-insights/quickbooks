@@ -16,17 +16,26 @@ class QuickBooksManager
 
     public function __construct(?PDO $pdo = null, ?string $companyId = null)
     {
-        // Load package env automatically
         EnvLoader::load();
 
-        $this->baseUrl   = getenv('QBO_BASE_URL');
+        $this->baseUrl   = getenv('QBO_BASE_URL') ?: '';
         $this->companyId = $companyId ?? getenv('QBO_REALM_ID');
 
-        $pdo ??= new PDO(
-            getenv('DB_DSN'),
-            getenv('DB_USER'),
-            getenv('DB_PASSWORD')
-        );
+        if (!$pdo) {
+            $dsn  = getenv('DB_DSN');
+            $user = getenv('DB_USER');
+            $pass = getenv('DB_PASSWORD');
+
+            if (!$dsn) {
+                throw new \RuntimeException(
+                    'DB_DSN is not set. Ensure .env is loaded before creating QuickBooksManager.'
+                );
+            }
+
+            $pdo = new PDO($dsn, $user, $pass, [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            ]);
+        }
 
         $repo = new TokenRepository($pdo);
 
@@ -36,6 +45,7 @@ class QuickBooksManager
             'quickbooks'
         );
     }
+
 
     public function getAuthUrl(): string
     {
