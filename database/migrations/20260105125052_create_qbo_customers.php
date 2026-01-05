@@ -20,7 +20,7 @@ final class CreateQboCustomers extends AbstractMigration
                 ->addColumn('qbo_id', 'string', ['limit' => 50, 'null' => true, 'comment' => 'QuickBooks Online ID'])
                 ->addColumn('sync_token', 'string', ['limit' => 50, 'null' => true])
                 ->addTimestamps() // creates created_at and updated_at
-                ->addForeignKey('qbo_company_id', 'qbo_companies', 'id', ['delete' => 'CASCADE', 'update' => 'NO_ACTION'])
+                ->addForeignKey('qbo_company_id', 'qbo_companies', 'id', ['signed' => true, 'delete' => 'CASCADE', 'update' => 'NO_ACTION'])
                 ->addIndex(['qbo_id'], ['unique' => true])
                 ->create();
         }
