@@ -3,16 +3,29 @@ namespace ExcelleInsights\QuickBooks\Support;
 
 use Dotenv\Dotenv;
 
-class EnvLoader
+final class EnvLoader
 {
+    private static bool $loaded = false;
+
     public static function load(): void
     {
-        // Only load once
-        if (!defined('QBO_ENV_LOADED')) {
-            $dir = dirname(__DIR__, 2); // path to package root
-            $dotenv = Dotenv::createImmutable($dir);
-            $dotenv->load();
-            define('QBO_ENV_LOADED', true);
+        if (self::$loaded) {
+            return;
         }
+
+        // Priority order:
+        // 1. Project root .env (recommended)
+        // 2. Package .env (fallback)
+
+        $projectEnv = getcwd() . '/.env';
+        $packageEnv = dirname(__DIR__, 2) . '/.env';
+
+        if (file_exists($projectEnv)) {
+            Dotenv::createImmutable(getcwd())->safeLoad();
+        } elseif (file_exists($packageEnv)) {
+            Dotenv::createImmutable(dirname(__DIR__, 2))->safeLoad();
+        }
+
+        self::$loaded = true;
     }
 }
