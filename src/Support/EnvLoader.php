@@ -7,25 +7,34 @@ final class EnvLoader
 {
     private static bool $loaded = false;
 
-    public static function load(): void
+    public static function load(?string $rootPath = null): void
     {
         if (self::$loaded) {
             return;
         }
 
-        // Priority order:
-        // 1. Project root .env (recommended)
-        // 2. Package .env (fallback)
-
-        $projectEnv = getcwd() . '/.env';
-        $packageEnv = dirname(__DIR__, 2) . '/.env';
-
-        if (file_exists($projectEnv)) {
-            Dotenv::createImmutable(getcwd())->safeLoad();
-        } elseif (file_exists($packageEnv)) {
-            Dotenv::createImmutable(dirname(__DIR__, 2))->safeLoad();
+        // 1️⃣ Explicit root (best)
+        if ($rootPath && file_exists($rootPath . '/.env')) {
+            Dotenv::createImmutable($rootPath)->safeLoad();
+            self::$loaded = true;
+            return;
         }
 
-        self::$loaded = true;
+        // 2️⃣ Try project root via composer autoload location
+        $vendorDir = dirname(__DIR__, 4); // vendor/excelle-insights/quickbooks/src
+        $projectRoot = dirname($vendorDir);
+
+        if (file_exists($projectRoot . '/.env')) {
+            Dotenv::createImmutable($projectRoot)->safeLoad();
+            self::$loaded = true;
+            return;
+        }
+
+        // 3️⃣ Fallback: package env (optional)
+        $packageEnv = dirname(__DIR__, 2) . '/.env';
+        if (file_exists($packageEnv)) {
+            Dotenv::createImmutable(dirname(__DIR__, 2))->safeLoad();
+            self::$loaded = true;
+        }
     }
 }

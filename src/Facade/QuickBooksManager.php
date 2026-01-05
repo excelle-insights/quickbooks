@@ -14,9 +14,9 @@ class QuickBooksManager
     private string $baseUrl;
     private string $companyId;
 
-    public function __construct(?PDO $pdo = null, ?string $companyId = null)
+    public function __construct(?PDO $pdo = null, ?string $companyId = null, ?string $envRoot = null)
     {
-        EnvLoader::load();
+        EnvLoader::load($envRoot);
 
         $this->baseUrl   = getenv('QBO_BASE_URL') ?: '';
         $this->companyId = $companyId ?? getenv('QBO_REALM_ID');
@@ -28,7 +28,7 @@ class QuickBooksManager
 
             if (!$dsn) {
                 throw new \RuntimeException(
-                    'DB_DSN is not set. Ensure .env is loaded before creating QuickBooksManager.'
+                    'DB_DSN is not set. Ensure your project .env exists and is readable.'
                 );
             }
 
@@ -45,7 +45,6 @@ class QuickBooksManager
             'quickbooks'
         );
     }
-
 
     public function getAuthUrl(): string
     {
