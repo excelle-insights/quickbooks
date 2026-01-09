@@ -81,4 +81,28 @@ class QuickBooksManager
 
         return $service->create($data);
     }
+
+    public function createInvoice(array $data): object
+    {
+        $repo = new QboCustomerRepository($this->pdo);
+
+        $service = new CustomerSyncService(
+            $repo,
+            $this->customers()
+        );
+
+        return $service->create($data);
+    }
+
+    public function createPayment(array $data): object
+    {
+        $repo = new QboCustomerRepository($this->pdo);
+
+        $service = new CustomerSyncService(
+            $repo,
+            $this->customers()
+        );
+
+        return $service->create($data);
+    }
 }
