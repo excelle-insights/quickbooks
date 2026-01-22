@@ -24,7 +24,8 @@ final class CreateQboInvoiceItems extends AbstractMigration
         $table
             ->addColumn('invoice_id', 'integer', [
                 'null' => false,
-                'comment' => 'References qbo_invoices.id',
+                'comment' => 'References '.$_ENV['QBO_CLIENT_ID'] ?? 'qbo' .'_invoices.id',
+                'signed' => false,
             ])
             ->addColumn('description', 'string', [
                 'limit' => 255,
