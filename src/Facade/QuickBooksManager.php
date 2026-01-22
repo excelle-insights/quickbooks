@@ -9,6 +9,10 @@ use ExcelleInsights\QuickBooks\Repositories\TokenRepository;
 use ExcelleInsights\QuickBooks\Support\EnvLoader;
 use ExcelleInsights\QuickBooks\Repositories\QboCustomerRepository;
 use ExcelleInsights\QuickBooks\Services\CustomerSyncService;
+use ExcelleInsights\QuickBooks\Services\InvoiceSyncService;
+use ExcelleInsights\QuickBooks\Repositories\QboInvoiceRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboInvoiceItemRepository;
+use ExcelleInsights\QuickBooks\Client\InvoiceClient;
 
 class QuickBooksManager
 {
@@ -84,15 +88,38 @@ class QuickBooksManager
 
     public function createInvoice(array $data): object
     {
-        $repo = new QboCustomerRepository($this->pdo);
+        if (empty($data['qbo_company_id'])) {
+            throw new \InvalidArgumentException('qbo_company_id is required');
+        }
 
-        $service = new CustomerSyncService(
-            $repo,
-            $this->customers()
+        if (empty($data['qbo_customer_id'])) {
+            throw new \InvalidArgumentException('qbo_customer_id is required');
+        }
+
+        if (empty($data['items']) || !is_array($data['items'])) {
+            throw new \InvalidArgumentException('Invoice items are required');
+        }
+
+        // Local repositories
+        $invoiceRepo = new QboInvoiceRepository($this->pdo);
+
+        // QBO client
+        $client = new InvoiceClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth
         );
 
+        // Sync service handles local + QBO creation
+        $service = new InvoiceSyncService(
+            $invoiceRepo,
+            $client
+        );
+
+        // Create and return the invoice
         return $service->create($data);
     }
+
 
     public function createPayment(array $data): object
     {
