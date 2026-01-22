@@ -19,16 +19,18 @@ final class CreateQboInvoices extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table('qbo_invoices');
+        $table = $this->table($_ENV['QBO_CLIENT_ID'] ?? 'qbo'.'_invoices');
 
         $table
             ->addColumn('qbo_company_id', 'integer', [
                 'null' => false,
-                'comment' => 'References qbo_companies.id',
+                'comment' => 'References '.$_ENV['QBO_CLIENT_ID'] ?? 'qbo' .'_companies.id',
+                'signed' => false,
             ])
             ->addColumn('qbo_customer_id', 'integer', [
                 'null' => false,
-                'comment' => 'References qbo_customers.id',
+                'comment' => 'References '.$_ENV['QBO_CLIENT_ID'] ?? 'qbo' .'_customers.id',
+                'signed' => false,
             ])
             ->addColumn('invoice_number', 'string', [
                 'limit' => 50,

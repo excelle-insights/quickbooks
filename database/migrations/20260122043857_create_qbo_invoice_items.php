@@ -19,7 +19,7 @@ final class CreateQboInvoiceItems extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table('qbo_invoice_items');
+        $table = $this->table($_ENV['QBO_CLIENT_ID'] ?? 'qbo' . '_invoice_items');
 
         $table
             ->addColumn('invoice_id', 'integer', [
