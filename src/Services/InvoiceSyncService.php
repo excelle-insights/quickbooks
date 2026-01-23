@@ -44,6 +44,7 @@ class InvoiceSyncService
             ];
         } catch (\Throwable $e) {
             // 4️⃣ If QBO sync fails, mark as failed for retry later
+            error_log("QBO Invoice sync failed: " . $e->getMessage . ":" . $e->getTraceAsString());
             $this->invoiceRepo->markFailed($localId, $e->getMessage());
 
             return (object)[
