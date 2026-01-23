@@ -19,17 +19,17 @@ final class CreateQboInvoices extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table($_ENV['QBO_CLIENT_ID'] ?? 'qbo'.'_invoices');
+        $table = $this->table($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo'.'_invoices');
 
         $table
             ->addColumn('qbo_company_id', 'integer', [
                 'null' => false,
-                'comment' => 'References '.$_ENV['QBO_CLIENT_ID'] ?? 'qbo' .'_companies.id',
+                'comment' => 'References '.$_ENV['QBO_TABLE_PREFIX'] ?? 'qbo' .'_companies.id',
                 'signed' => false,
             ])
             ->addColumn('qbo_customer_id', 'integer', [
                 'null' => false,
-                'comment' => 'References '.$_ENV['QBO_CLIENT_ID'] ?? 'qbo' .'_customers.id',
+                'comment' => 'References '.$_ENV['QBO_TABLE_PREFIX'] ?? 'qbo' .'_customers.id',
                 'signed' => false,
             ])
             ->addColumn('invoice_number', 'string', [
@@ -39,8 +39,8 @@ final class CreateQboInvoices extends AbstractMigration
             ])
             ->addColumn('status', 'string', [
                 'limit' => 20,
-                'default' => 'draft',
-                'comment' => 'draft | synced | failed',
+                'default' => 'pending',
+                'comment' => 'pending | synced | failed',
             ])
             ->addColumn('qbo_id', 'string', [
                 'limit' => 50,
@@ -51,7 +51,7 @@ final class CreateQboInvoices extends AbstractMigration
                 'limit' => 50,
                 'null' => true,
             ])
-            ->addColumn('invoice_date', 'date', [
+            ->addColumn('txn_date', 'date', [
                 'null' => false,
             ])
             ->addColumn('due_date', 'date', [
