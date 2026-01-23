@@ -16,7 +16,7 @@ class QboInvoiceRepository
         $stmt = $this->pdo->prepare("
             INSERT INTO qbo_invoices (
                 qbo_company_id,
-                customer_qbo_id,
+                qbo_customer_id,
                 invoice_number,
                 status,
                 txn_date,
@@ -26,7 +26,7 @@ class QboInvoiceRepository
                 updated_at
             ) VALUES (
                 :company_id,
-                :customer_qbo_id,
+                :qbo_customer_id,
                 :invoice_number,
                 :status,
                 :txn_date,
@@ -39,9 +39,9 @@ class QboInvoiceRepository
 
         $stmt->execute([
             ':company_id'       => $data['qbo_company_id'],
-            ':customer_qbo_id'  => $data['customer_qbo_id'],
+            ':qbo_customer_id'  => $data['qbo_customer_id'],
             ':invoice_number'   => $data['invoice_number'] ?? null,
-            ':status'           => $data['status'] ?? 'draft',
+            ':status'           => $data['status'] ?? 'pending',
             ':txn_date'         => $data['txn_date'] ?? date('Y-m-d'),
             ':due_date'         => $data['due_date'] ?? null,
             ':currency'         => $data['currency'] ?? 'KES',
@@ -134,7 +134,7 @@ class QboInvoiceRepository
             FROM qbo_invoices
             WHERE qbo_company_id = ?
               AND qbo_id IS NULL
-              AND status IN ('draft', 'failed')
+              AND status IN ('pending', 'failed')
             ORDER BY created_at ASC
         ");
 

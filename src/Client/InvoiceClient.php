@@ -76,6 +76,10 @@ class InvoiceClient extends BaseClient
                 'Amount' => (float) $item['amount'],
                 'Description' => $item['description'] ?? '',
                 'SalesItemLineDetail' => [
+                    "ItemRef" => [
+                        "value" => isset($item['item_id']) ? $item['item_id'] : "",
+                        "name" => isset($item['item_name']) ? $item['item_name'] : ""
+                    ],
                     'Qty' => (float) $item['quantity'] ?? 1,
                     'UnitPrice' => (float) $item['unit_price'] ?? 0,
                 ],

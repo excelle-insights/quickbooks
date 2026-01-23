@@ -16,17 +16,21 @@ class QboInvoiceItemRepository
         $stmt = $this->pdo->prepare("
             INSERT INTO qbo_invoice_items (
                 qbo_invoice_id,
+                item_id,
+                item_name,
                 description,
                 quantity,
                 unit_price,
                 amount,
                 created_at,
                 updated_at
-            ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
 
         $stmt->execute([
             $invoiceId,
+            $data['item_id'] ?? '',
+            $data['item_name'] ?? '',
             $data['description'] ?? '',
             $data['quantity'] ?? 1,
             $data['unit_price'] ?? 0,
@@ -54,6 +58,10 @@ class QboInvoiceItemRepository
                 'Amount' => (float) $row->amount,
                 'Description' => $row->description,
                 'SalesItemLineDetail' => [
+                    "ItemRef" => [
+                        "value" => isset($row->item_id) ? $row->item_id : "",
+                        "name" => isset($row->item_name) ? $row->item_name : ""
+                    ],
                     'Qty' => (float) $row->quantity,
                     'UnitPrice' => (float) $row->unit_price,
                 ],
