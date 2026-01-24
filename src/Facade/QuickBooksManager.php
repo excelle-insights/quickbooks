@@ -13,6 +13,7 @@ use ExcelleInsights\QuickBooks\Services\InvoiceSyncService;
 use ExcelleInsights\QuickBooks\Repositories\QboInvoiceRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboInvoiceItemRepository;
 use ExcelleInsights\QuickBooks\Client\InvoiceClient;
+use ExcelleInsights\QuickBooks\Contracts\HttpClientInterface;
 
 class QuickBooksManager
 {
@@ -20,10 +21,13 @@ class QuickBooksManager
     private PDO $pdo;
     private string $baseUrl;
     private string $companyId;
+    private HttpClientInterface $http;
 
-    public function __construct(?PDO $pdo = null, ?string $companyId = null, ?string $envRoot = null)
+    public function __construct(HttpClientInterface $http, ?PDO $pdo = null, ?string $companyId = null, ?string $envRoot = null)
     {
         EnvLoader::load($envRoot);
+
+        $this->http = $http;
 
         $this->baseUrl   = $_ENV['QBO_BASE_URL'] ?? '' ?: 'https://quickbooks.api.intuit.com/v3/company/';
         $this->companyId = $companyId ?? $_ENV['QBO_REALM_ID'] ?? null;
@@ -65,22 +69,21 @@ class QuickBooksManager
     }
 
 
-    public function customers(): CustomerClient
-    {
-        return new CustomerClient(
-            $this->baseUrl,
-            $this->companyId,
-            $this->auth
-        );
-    }
 
     public function createCustomer(array $data): object
     {
         $repo = new QboCustomerRepository($this->pdo);
 
+        $client = new CustomerClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
         $service = new CustomerSyncService(
             $repo,
-            $this->customers()
+            $client
         );
 
         return $service->create($data);
