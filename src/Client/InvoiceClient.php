@@ -21,7 +21,7 @@ class InvoiceClient extends BaseClient
     {
         $payload = [
             'CustomerRef' => [
-                'value' => $data['qbo_customer_id'],
+                'value' => $data['customer_qbo_id'],
             ],
             'TxnDate' => $data['txn_date'] ?? date('Y-m-d'),
             'PrivateNote' => $data['notes'] ?? '',
