@@ -3,71 +3,72 @@
 namespace ExcelleInsights\QuickBooks\Client;
 
 use ExcelleInsights\QuickBooks\Auth\Authentication;
+use ExcelleInsights\QuickBooks\Contracts\HttpClientInterface;
 
 abstract class BaseClient
 {
     protected string $baseUrl;
     protected string $companyId;
     protected Authentication $auth;
+    protected HttpClientInterface $http;
 
-    public function __construct(string $baseUrl, string $companyId, Authentication $auth)
-    {
+    public function __construct(
+        string $baseUrl,
+        string $companyId,
+        Authentication $auth,
+        HttpClientInterface $http
+    ) {
         $this->baseUrl   = rtrim($baseUrl, '/');
         $this->companyId = $companyId;
         $this->auth      = $auth;
+        $this->http      = $http;
     }
 
     /**
      * Perform a HTTP request to QuickBooks Online API
      *
-     * @param string $method GET|POST|PUT|DELETE
-     * @param string $endpoint e.g. '/customer'
-     * @param array  $data Optional payload
-     *
-     * @return object JSON-decoded response
-     * @throws \RuntimeException on HTTP or curl error
+     * @throws \RuntimeException
      */
     protected function sendRequest(string $method, string $endpoint, array $data = []): object
     {
         $url = $this->baseUrl . $endpoint;
 
-        $ch = curl_init($url);
-
         $headers = [
-            "Accept: application/json",
-            "Content-Type: application/json",
-            "Authorization: Bearer " . $this->auth->accessToken()
+            'Accept'        => 'application/json',
+            'Content-Type'  => 'application/json',
+            'Authorization' => 'Bearer ' . $this->auth->accessToken(),
         ];
 
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CUSTOMREQUEST  => $method,
-            CURLOPT_HTTPHEADER     => $headers
-        ]);
+        $payload = empty($data) ? null : json_encode($data);
 
-        if (!empty($data)) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        $response = $this->http->send(
+            $method,
+            $url,
+            $headers,
+            $payload
+        );
+
+        $status = $response['status'];
+        $body   = $response['body'];
+
+        // Decode JSON if needed
+        if (is_string($body)) {
+            $decoded = json_decode($body);
+        } else {
+            $decoded = $body;
         }
-
-        $response = curl_exec($ch);
-        $status   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-        if ($response === false) {
-            throw new \RuntimeException('cURL Error: ' . curl_error($ch));
-        }
-
-        curl_close($ch);
-
-        $decoded = json_decode($response);
 
         if ($status >= 400) {
-            $message = property_exists($decoded, 'Fault') 
-                ? json_encode($decoded->Fault) 
-                : $response;
-            throw new \RuntimeException("QBO API Error ({$status}): {$message}");
+            $message = is_object($decoded) && property_exists($decoded, 'Fault')
+                ? json_encode($decoded->Fault)
+                : json_encode($decoded);
+
+            throw new \RuntimeException(
+                "QBO API Error ({$status}): {$message}"
+            );
         }
 
-        return $decoded;
+        return is_object($decoded) ? $decoded : (object) $decoded;
     }
 
     /**
@@ -75,6 +76,11 @@ abstract class BaseClient
      */
     protected function endpoint(string $path, int $minorVersion = 69): string
     {
-        return sprintf('/v3/company/%s/%s?minorversion=%d', $this->companyId, ltrim($path, '/'), $minorVersion);
+        return sprintf(
+            '/v3/company/%s/%s?minorversion=%d',
+            $this->companyId,
+            ltrim($path, '/'),
+            $minorVersion
+        );
     }
 }
