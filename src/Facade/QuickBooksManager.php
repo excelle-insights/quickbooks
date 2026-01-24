@@ -102,6 +102,7 @@ class QuickBooksManager
 
         // Local repositories
         $invoiceRepo = new QboInvoiceRepository($this->pdo);
+        $customerRepo = new QboCustomerRepository($this->pdo);
 
         // QBO client
         $client = new InvoiceClient(
@@ -113,6 +114,7 @@ class QuickBooksManager
         // Sync service handles local + QBO creation
         $service = new InvoiceSyncService(
             $invoiceRepo,
+            $customerRepo, 
             $client
         );
 

@@ -3,12 +3,14 @@
 namespace ExcelleInsights\QuickBooks\Services;
 
 use ExcelleInsights\QuickBooks\Repositories\QboInvoiceRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboCustomerRepository;
 use ExcelleInsights\QuickBooks\Client\InvoiceClient;
 
 class InvoiceSyncService
 {
     public function __construct(
         private QboInvoiceRepository $invoiceRepo,
+        private QboCustomerRepository $customerRepo,
         private InvoiceClient $invoiceClient
     ) {}
 
@@ -17,11 +19,28 @@ class InvoiceSyncService
      */
     public function create(array $data): object
     {
-        // 1️⃣ Insert invoice locally first
+        // Insert invoice locally first
         $localId = $this->invoiceRepo->create($data);
 
+        // Load customer (local source of truth)
+        $customer = $this->customerRepo->find(
+            (int) $data['qbo_customer_id']
+        );
+
+        // If customer not yet synced → stop here
+        if (!$customer || !$customer->qbo_id) {
+            return (object) [
+                'status'   => 'queued',
+                'local_id' => $localId,
+                'reason'   => 'Customer not yet synced to QBO',
+            ];
+        }
+
+        // Inject QBO customer ID for API payload
+        $data['customer_qbo_id'] = $customer->qbo_id;
+
         try {
-            // 2️⃣ Attempt to create invoice in QBO
+            // Attempt to create invoice in QBO
             $qboInvoice = $this->invoiceClient->create($data);
 
             // Ensure required fields exist
@@ -29,7 +48,7 @@ class InvoiceSyncService
             $syncToken = $qboInvoice->SyncToken ?? null;
             $total = $qboInvoice->TotalAmt ?? 0;
 
-            // 3️⃣ Mark invoice as synced locally
+            // Mark invoice as synced locally
             $this->invoiceRepo->markSynced(
                 $localId,
                 $qboId,
