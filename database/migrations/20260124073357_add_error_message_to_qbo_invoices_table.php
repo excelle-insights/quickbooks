@@ -19,7 +19,7 @@ final class AddErrorMessageToQboInvoicesTable extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table('qbo_invoices')
+        $this->table('qbo_invoices')
             ->addColumn('error_message', 'string', ['after' => 'currency'])
             ->update();
     }
