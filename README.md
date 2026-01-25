@@ -22,6 +22,8 @@ QBO_BASE_URL=https://quickbooks.api.intuit.com
 QBO_CLIENT_ID=YOUR_CLIENT_ID
 QBO_CLIENT_SECRET=YOUR_CLIENT_SECRET
 QBO_REALM_ID=YOUR_COMPANY_ID
+QBO_REDIRECT_URI=http://gimco.local/admin/debug_scripts/qbo-auth-callback.php
+QBO_TABLE_PREFIX=qbo_beta
 
 # Database connection
 DB_DSN=mysql:host=127.0.0.1;dbname=myapp
@@ -35,22 +37,18 @@ The package automatically loads its own .env if present.
 
 This package uses Phinx for database migrations.
 
-1. Copy migrations from the package:
+1. Run the migrations:
 
-```
-cp -R vendor/excelle-insights/quickbooks/database/migrations database/migrations/qbo
-```
-
-2. Run the migrations:
-
-vendor/bin/phinx migrate -e development
-
+php vendor/excelle-insights/quickbooks/scripts/migrate.php
 
 Tables created include:
 
+- api_access_tokens
 - qbo_companies
 - qbo_customers
-- api_access_tokens
+- qbo_invoices
+- qbo_invoice_items
+- http_request_logs
 
 ## Quick Start
 1. Get the OAuth Authorization URL
@@ -103,16 +101,18 @@ use ExcelleInsights\QuickBooks\Facade\QuickBooksManager;
 // Initialize the manager
 $qbo = new QuickBooksManager();
 
+$index = 1;
+
 $result = $qbo->createCustomer([
     'qbo_company_id' => 1,
-    'name'           => 'Acme Ltd',
-    'email'          => 'info@acme.com',
-    'phone'          => '+254700000000',
-    'company_name'   => 'Excelle Insights',
-    'country'        => 'Kenya',
-    'city'           => 'Nairobi',
-    'postal_code'    => '00100',
-    'line'           => 'Ngong Road',
+    'name'  => 'Test Customer'.$index,
+    'email'         => 'testcustomer'.$index.'@email.com',
+    'phone'         => '+254724565654'.$index,
+    'company_name' => 'Test Company '.$index,
+    'country'      => 'Kenya',
+    'city'         => 'Nairobi',
+    'postal_code'  => '00100',
+    'line'         => 'Ngong Road',
 ]);
 
 if ($result->status === 'synced') {
@@ -120,8 +120,56 @@ if ($result->status === 'synced') {
 } else {
     echo "Customer queued for retry. Local ID: " . $result->local_id;
 }
+
 ```
 
+4. Create an Invoice
+
+This script creates an invoice locally and attempts to sync it with QuickBooks Online:
+
+```php
+<?php
+require '../../vendor/autoload.php';
+
+use ExcelleInsights\QuickBooks\Facade\QuickBooksManager;
+
+// Initialize the manager
+$qbo = new QuickBooksManager();
+
+// Create an invoice
+$result = $qbo->createInvoice([
+    'qbo_company_id'  => 1,
+    'qbo_customer_id' => 11, // Replace with actual QBO customer ID
+    'invoice_number'  => 'INV-001',
+    'txn_date'        => '2026-01-22',
+    'due_date'        => '2026-02-05',
+    'currency'        => 'KES',
+    'items' => [
+        [
+            'description' => 'Consulting Services',
+            'quantity'    => 1,
+            'unit_price'  => 5000,
+            'amount'      => 5000, // quantity * unit_price
+        ],
+        [
+            'description' => 'Software License',
+            'quantity'    => 2,
+            'unit_price'  => 1500,
+            'amount'      => 3000,
+        ],
+    ],
+]);
+
+if ($result->status === 'synced') {
+    echo "Invoice synced with QBO ID: " . $result->qbo_id;
+} else {
+    echo "Invoice queued for retry. Local ID: " . $result->local_id;
+    if (!empty($result->error)) {
+        echo "\nError: " . $result->error;
+    }
+}
+
+```
 ## Testing
 
 The package uses PHPUnit for testing. To run tests:
@@ -146,3 +194,4 @@ Ensure your .env (or package .env) is configured with valid database and QBO cre
 - Redirect user to QuickBooks authorization page using getAuthUrl().
 - Handle the callback via OAuthController.
 - Create customers locally and sync with QBO using createCustomer().
+- Create invoices locally and sync with QBO using createInvoice().
