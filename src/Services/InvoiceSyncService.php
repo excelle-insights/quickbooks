@@ -44,17 +44,19 @@ class InvoiceSyncService
             $qboInvoice = $this->invoiceClient->create($data);
 
             // Ensure required fields exist
-            $qboId = $qboInvoice->Id ?? null;
-            $syncToken = $qboInvoice->SyncToken ?? null;
-            $total = $qboInvoice->TotalAmt ?? 0;
+            $qboId = $qboInvoice->Invoice->Id ?? null;
+            $syncToken = $qboInvoice->Invoice->SyncToken ?? null;
+            $total = $qboInvoice->Invoice->TotalAmt ?? 0;
 
-            // Mark invoice as synced locally
-            $this->invoiceRepo->markSynced(
-                $localId,
-                $qboId,
-                $syncToken,
-                $total
-            );
+            if($qboId) {
+                // Mark invoice as synced locally
+                $this->invoiceRepo->markSynced(
+                    $localId,
+                    $qboId,
+                    $syncToken,
+                    $total
+                );
+            }
 
             return (object)[
                 'status'   => 'synced',
