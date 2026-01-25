@@ -6,33 +6,33 @@ use ExcelleInsights\QuickBooks\Auth\Authentication;
 
 class InvoiceClient extends BaseClient
 {
-    public function __construct(
-        string $baseUrl,
-        string $companyId,
-        Authentication $auth
-    ) {
-        parent::__construct($baseUrl, $companyId, $auth);
-    }
-
     /**
-     * Create invoice in QuickBooks Online
+     * Create a new Invoice in QuickBooks
      */
     public function create(array $data): object
     {
-        $payload = [
+        if (empty($data['customer_qbo_id'])) {
+            throw new \InvalidArgumentException('customer_qbo_id is required to create an invoice.');
+        }
+
+        if (empty($data['items']) || !is_array($data['items'])) {
+            throw new \InvalidArgumentException('Invoice items are required.');
+        }
+
+        $payload = array_filter([
             'CustomerRef' => [
-                'value' => $data['customer_qbo_id'],
+                'value' => $data['customer_qbo_id']
             ],
-            'TxnDate' => $data['txn_date'] ?? date('Y-m-d'),
-            'PrivateNote' => $data['notes'] ?? '',
-            'Line' => $this->buildLines($data['items'] ?? []),
-        ];
+            'TxnDate'     => $data['txn_date'] ?? date('Y-m-d'),
+            'PrivateNote' => $data['notes'] ?? null,
+            'Line'        => $this->buildLines($data['items'])
+        ], fn($v) => $v !== null);
 
         return $this->sendRequest('POST', $this->endpoint('invoice'), $payload);
     }
 
     /**
-     * Retrieve invoice by QBO ID
+     * Retrieve an invoice by QBO ID
      */
     public function getById(string $qboInvoiceId): object
     {
@@ -40,50 +40,54 @@ class InvoiceClient extends BaseClient
     }
 
     /**
-     * Search invoice by invoice number
+     * Search invoice by DocNumber
      */
     public function search(string $invoiceNumber): object
     {
         $query = "select Id from Invoice Where DocNumber = '" . trim($invoiceNumber) . "'";
-        return $this->sendRequest('GET', $this->endpoint('query?query=' . urlencode($query)));
+        return $this->sendRequest('GET', $this->endpoint('query?query=' . rawurlencode($query)));
     }
 
     /**
-     * Void / deactivate invoice
+     * Void or deactivate an invoice
      */
     public function void(string $qboInvoiceId, string $syncToken): object
     {
+        if (empty($syncToken)) {
+            throw new \InvalidArgumentException('syncToken is required to void an invoice.');
+        }
+
         $payload = [
-            'Id' => $qboInvoiceId,
+            'Id'        => $qboInvoiceId,
             'SyncToken' => $syncToken,
-            'sparse' => true,
-            'PrivateNote' => 'Voided locally',
+            'sparse'    => true,
+            'PrivateNote' => 'Voided locally'
         ];
 
         return $this->sendRequest('POST', $this->endpoint('invoice'), $payload);
     }
 
     /**
-     * Convert local items to QBO Line objects
+     * Build QBO line items from local items
      */
     private function buildLines(array $items): array
     {
         $lines = [];
 
         foreach ($items as $item) {
-            $lines[] = [
+            $lines[] = array_filter([
                 'DetailType' => 'SalesItemLineDetail',
-                'Amount' => (float) $item['amount'],
-                'Description' => $item['description'] ?? '',
-                'SalesItemLineDetail' => [
-                    "ItemRef" => [
-                        "value" => isset($item['item_id']) ? $item['item_id'] : "",
-                        "name" => isset($item['item_name']) ? $item['item_name'] : ""
-                    ],
-                    'Qty' => (float) $item['quantity'] ?? 1,
-                    'UnitPrice' => (float) $item['unit_price'] ?? 0,
-                ],
-            ];
+                'Amount'     => isset($item['amount']) ? (float) $item['amount'] : 0,
+                'Description'=> $item['description'] ?? null,
+                'SalesItemLineDetail' => array_filter([
+                    'ItemRef' => array_filter([
+                        'value' => $item['item_id'] ?? null,
+                        'name'  => $item['item_name'] ?? null
+                    ], fn($v) => $v !== null),
+                    'Qty'       => isset($item['quantity']) ? (float) $item['quantity'] : 1,
+                    'UnitPrice' => isset($item['unit_price']) ? (float) $item['unit_price'] : 0
+                ])
+            ], fn($v) => $v !== null);
         }
 
         return $lines;
