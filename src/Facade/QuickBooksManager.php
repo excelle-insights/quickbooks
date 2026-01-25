@@ -5,16 +5,19 @@ namespace ExcelleInsights\QuickBooks\Facade;
 use PDO;
 use ExcelleInsights\QuickBooks\Auth\Authentication;
 use ExcelleInsights\QuickBooks\Client\CustomerClient;
-use ExcelleInsights\QuickBooks\Repositories\TokenRepository;
-use ExcelleInsights\QuickBooks\Support\EnvLoader;
-use ExcelleInsights\QuickBooks\Repositories\QboCustomerRepository;
-use ExcelleInsights\QuickBooks\Services\CustomerSyncService;
-use ExcelleInsights\QuickBooks\Services\InvoiceSyncService;
-use ExcelleInsights\QuickBooks\Repositories\QboInvoiceRepository;
-use ExcelleInsights\QuickBooks\Repositories\QboInvoiceItemRepository;
 use ExcelleInsights\QuickBooks\Client\InvoiceClient;
 use ExcelleInsights\QuickBooks\Contracts\HttpClientInterface;
+use ExcelleInsights\QuickBooks\Repositories\TokenRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboCustomerRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboInvoiceRepository;
+use ExcelleInsights\QuickBooks\Services\CustomerSyncService;
+use ExcelleInsights\QuickBooks\Services\InvoiceSyncService;
+use ExcelleInsights\QuickBooks\Support\EnvLoader;
 
+/**
+ * Facade for QuickBooks integration
+ * Keeps DX simple while wiring everything internally
+ */
 class QuickBooksManager
 {
     private Authentication $auth;
@@ -23,14 +26,19 @@ class QuickBooksManager
     private string $companyId;
     private HttpClientInterface $http;
 
-    public function __construct(HttpClientInterface $http, ?PDO $pdo = null, ?string $companyId = null, ?string $envRoot = null)
-    {
+    public function __construct(
+        ?HttpClientInterface $http = null,
+        ?PDO $pdo = null,
+        ?string $companyId = null,
+        ?string $envRoot = null
+    ) {
         EnvLoader::load($envRoot);
 
-        $this->http = $http;
-
-        $this->baseUrl   = $_ENV['QBO_BASE_URL'] ?? '' ?: 'https://quickbooks.api.intuit.com/v3/company/';
-        $this->companyId = $companyId ?? $_ENV['QBO_REALM_ID'] ?? null;
+        $this->baseUrl   = $_ENV['QBO_BASE_URL']
+            ?? 'https://quickbooks.api.intuit.com';
+        $this->companyId = $companyId
+            ?? $_ENV['QBO_REALM_ID']
+            ?? '';
 
         if (!$pdo) {
             $dsn  = $_ENV['DB_DSN'] ?? null;
@@ -39,7 +47,7 @@ class QuickBooksManager
 
             if (!$dsn) {
                 throw new \RuntimeException(
-                    'DB_DSN is not set. Ensure your project .env exists and is readable.'
+                    'DB_DSN is not set. Ensure your project .env exists.'
                 );
             }
 
@@ -49,10 +57,22 @@ class QuickBooksManager
         }
 
         $this->pdo = $pdo;
-        $repo = new TokenRepository($pdo);
 
+                /**
+         * 🔌 HTTP client
+         * Default is instantiated internally
+         */
+        if ($http === null) {
+            // ⚠️ DO NOT hard-reference CRM classes in the package
+            // Replace this with a factory later if needed
+            $http = new \ExcelleInsights\QuickBooks\Support\DefaultHttpClient($this->pdo);
+        }
+
+        $this->http = $http;
+
+        $tokenRepo = new TokenRepository($pdo);
         $this->auth = new Authentication(
-            $repo,
+            $tokenRepo,
             'quickbooks',
             'quickbooks'
         );
@@ -68,8 +88,11 @@ class QuickBooksManager
         $this->auth->exchangeAuthorizationCode($code, $realmId);
     }
 
-
-
+    /**
+     * -------------------------
+     * Customers
+     * -------------------------
+     */
     public function createCustomer(array $data): object
     {
         $repo = new QboCustomerRepository($this->pdo);
@@ -81,58 +104,40 @@ class QuickBooksManager
             $this->http
         );
 
-        $service = new CustomerSyncService(
-            $repo,
-            $client
-        );
+        $service = new CustomerSyncService($repo, $client);
 
         return $service->create($data);
     }
 
+    /**
+     * -------------------------
+     * Invoices
+     * -------------------------
+     */
     public function createInvoice(array $data): object
     {
         if (empty($data['qbo_company_id'])) {
             throw new \InvalidArgumentException('qbo_company_id is required');
         }
 
-        if (empty($data['qbo_customer_id'])) {
-            throw new \InvalidArgumentException('qbo_customer_id is required');
-        }
-
         if (empty($data['items']) || !is_array($data['items'])) {
             throw new \InvalidArgumentException('Invoice items are required');
         }
 
-        // Local repositories
-        $invoiceRepo = new QboInvoiceRepository($this->pdo);
+        $invoiceRepo  = new QboInvoiceRepository($this->pdo);
         $customerRepo = new QboCustomerRepository($this->pdo);
 
-        // QBO client
         $client = new InvoiceClient(
             $this->baseUrl,
             $this->companyId,
-            $this->auth
+            $this->auth,
+            $this->http
         );
 
-        // Sync service handles local + QBO creation
         $service = new InvoiceSyncService(
             $invoiceRepo,
-            $customerRepo, 
+            $customerRepo,
             $client
-        );
-
-        // Create and return the invoice
-        return $service->create($data);
-    }
-
-
-    public function createPayment(array $data): object
-    {
-        $repo = new QboCustomerRepository($this->pdo);
-
-        $service = new CustomerSyncService(
-            $repo,
-            $this->customers()
         );
 
         return $service->create($data);

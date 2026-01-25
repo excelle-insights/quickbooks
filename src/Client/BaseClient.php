@@ -4,6 +4,7 @@ namespace ExcelleInsights\QuickBooks\Client;
 
 use ExcelleInsights\QuickBooks\Auth\Authentication;
 use ExcelleInsights\QuickBooks\Contracts\HttpClientInterface;
+use RuntimeException;
 
 abstract class BaseClient
 {
@@ -27,7 +28,12 @@ abstract class BaseClient
     /**
      * Perform a HTTP request to QuickBooks Online API
      *
-     * @throws \RuntimeException
+     * @param string $method GET|POST|PUT|DELETE
+     * @param string $endpoint API endpoint path
+     * @param array  $data Optional payload
+     *
+     * @return object JSON-decoded response
+     * @throws RuntimeException on HTTP error or invalid JSON
      */
     protected function sendRequest(string $method, string $endpoint, array $data = []): object
     {
@@ -39,40 +45,43 @@ abstract class BaseClient
             'Authorization' => 'Bearer ' . $this->auth->accessToken(),
         ];
 
-        $payload = empty($data) ? null : json_encode($data);
-
+        // Let the HttpClient handle JSON encoding internally
         $response = $this->http->send(
             $method,
             $url,
             $headers,
-            $payload
+            empty($data) ? null : $data
         );
 
-        $status = $response['status'];
-        $body   = $response['body'];
+        $status = $response['status'] ?? 0;
+        $body   = $response['body'] ?? null;
 
-        // Decode JSON if needed
+        // Decode JSON safely
         if (is_string($body)) {
             $decoded = json_decode($body);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new RuntimeException(
+                    "Invalid JSON response from QBO ({$status}): " . json_last_error_msg()
+                );
+            }
         } else {
             $decoded = $body;
         }
 
+        // Handle API errors
         if ($status >= 400) {
             $message = is_object($decoded) && property_exists($decoded, 'Fault')
                 ? json_encode($decoded->Fault)
                 : json_encode($decoded);
 
-            throw new \RuntimeException(
-                "QBO API Error ({$status}): {$message}"
-            );
+            throw new RuntimeException("QBO API Error ({$status}): {$message}");
         }
 
         return is_object($decoded) ? $decoded : (object) $decoded;
     }
 
     /**
-     * Helper to build standard API endpoint with minorversion
+     * Build standard QuickBooks Online API endpoint with minorversion
      */
     protected function endpoint(string $path, int $minorVersion = 69): string
     {
