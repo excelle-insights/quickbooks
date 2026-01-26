@@ -66,7 +66,7 @@ class QboInvoiceRepository
                 sync_token  = :sync_token,
                 total       = :total,
                 status      = 'synced',
-                updated_at  = NOW()
+                last_attempt_at  = NOW()
             WHERE id = :id
         ");
 
@@ -87,8 +87,9 @@ class QboInvoiceRepository
             UPDATE qbo_invoices
             SET
                 status = 'failed',
+                retry_count = retry_count + 1, 
                 error_message = :reason,
-                updated_at = NOW()
+                last_attempt_at = NOW()
             WHERE id = :id
         ");
 
@@ -127,20 +128,18 @@ class QboInvoiceRepository
     /**
      * Invoices pending sync
      */
-    public function unsynced(int $companyId): array
+    public function getPending(int $maxRetries = 5): array
     {
         $stmt = $this->pdo->prepare("
-            SELECT *
-            FROM qbo_invoices
-            WHERE qbo_company_id = ?
-              AND qbo_id IS NULL
-              AND status IN ('pending', 'failed')
-            ORDER BY created_at ASC
-        ");
+        SELECT *
+        FROM qbo_invoices
+        WHERE status IN ('pending','failed')
+          AND retry_count < :maxRetries
+        ORDER BY last_attempt_at ASC
+    ");
+        $stmt->execute([':maxRetries' => $maxRetries]);
 
-        $stmt->execute([$companyId]);
-
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     /**

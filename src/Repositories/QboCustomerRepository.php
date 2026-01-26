@@ -58,11 +58,23 @@ class QboCustomerRepository
     ): void {
         $stmt = $this->pdo->prepare("
             UPDATE qbo_customers
-            SET qbo_id = ?, sync_token = ?, updated_at = NOW()
+            SET qbo_id = ?, sync_token = ?, status = ?, last_attempt_at = NOW()
             WHERE id = ?
         ");
 
-        $stmt->execute([$qboId, $syncToken, $id]);
+        $stmt->execute([$qboId, $syncToken, 'synced', $id]);
+    }
+    public function markFailed(int $id, string $error): void
+    {
+        $stmt = $this->pdo->prepare("
+            UPDATE qbo_customers
+            SET status = 'failed',
+                retry_count = retry_count + 1,
+                last_attempt_at = NOW(),
+                error_message = :error
+            WHERE id = :id
+        ");
+        $stmt->execute([':error' => $error, ':id' => $id]);
     }
 
     /**
@@ -131,15 +143,17 @@ class QboCustomerRepository
     /**
      * Customers pending initial sync
      */
-    public function unsynced(int $companyId): array
+    public function getPending(int $maxRetries = 5): array
     {
         $stmt = $this->pdo->prepare("
-            SELECT * FROM qbo_customers
-            WHERE qbo_company_id = ?
-              AND qbo_id IS NULL
-        ");
-        $stmt->execute([$companyId]);
+        SELECT *
+        FROM qbo_customers
+        WHERE status IN ('pending','failed')
+          AND retry_count < :maxRetries
+        ORDER BY last_attempt_at ASC
+    ");
+        $stmt->execute([':maxRetries' => $maxRetries]);
 
-        return $stmt->fetchAll(PDO::FETCH_OBJ);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
