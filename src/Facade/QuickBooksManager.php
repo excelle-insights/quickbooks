@@ -82,7 +82,10 @@ class QuickBooksManager
     {
         return $this->auth->getAuthUrl();
     }
-
+    public function getPdo(): PDO
+    {
+        return $this->pdo;
+    }
     public function authenticate(string $code, string $realmId): void
     {
         $this->auth->exchangeAuthorizationCode($code, $realmId);
