@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Phinx\Migration\AbstractMigration;
 
-final class AddRetryCountToQboInvoicesTable extends AbstractMigration
+final class AddRetryCountToQboInvoicesTableFixed extends AbstractMigration
 {
     /**
      * Change Method.
