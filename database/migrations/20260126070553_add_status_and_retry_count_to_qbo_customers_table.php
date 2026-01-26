@@ -37,8 +37,8 @@ final class AddStatusAndRetryCountToQboCustomersTable extends AbstractMigration
             ])->update();
         }
 
-        if (!$table->hasColumn('retry_count')) {
-            $table->addColumn('retry_count', 'datetime', [
+        if (!$table->hasColumn('last_attempt_at')) {
+            $table->addColumn('last_attempt_at', 'datetime', [
                 'after' => 'retry_count'
             ])->update();
         }
