@@ -25,7 +25,7 @@ final class AddStatusAndRetryCountToQboCustomersTable extends AbstractMigration
             $table->addColumn('status', 'string', [
                 'limit' => 20,
                 'default' => 'pending',
-                'after' => 'currency',
+                'after' => 'line',
                 'comment' => 'pending | synced | failed',
             ])->update();
         }
