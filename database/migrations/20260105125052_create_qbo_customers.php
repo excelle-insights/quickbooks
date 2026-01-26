@@ -12,7 +12,7 @@ final class CreateQboCustomers extends AbstractMigration
 
         if (!$table->exists()) {
             $table
-                ->addColumn('qbo_company_id', 'integer', ['signed' => true, 'null' => true, 'comment' => 'References qbo_companies.id'])
+                ->addColumn('qbo_company_id', 'integer', ['signed' => false, 'null' => true, 'comment' => 'References qbo_companies.id'])
                 ->addColumn('display_name', 'string', ['limit' => 255])
                 ->addColumn('email', 'string', ['limit' => 255, 'null' => true])
                 ->addColumn('phone', 'string', ['limit' => 50, 'null' => true])
