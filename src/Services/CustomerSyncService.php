@@ -14,22 +14,23 @@ class CustomerSyncService
 
     public function create(array $data): object
     {
-        // 1️⃣ Create locally
+        // Create locally
         $localId = $this->customers->create($data);
 
         try {
-            // 2️⃣ Create in QBO
+            // Create in QBO
             $response = $this->qbo->create($data);
 
             if (!isset($response->Customer)) {
                 throw new \RuntimeException('Invalid QBO response');
             }
 
-            // 3️⃣ Link local ↔ QBO
+            // Link local ↔ QBO
             $this->customers->markSynced(
                 $localId,
                 $response->Customer->Id,
-                $response->Customer->SyncToken
+                $response->Customer->SyncToken,
+                "synced"
             );
 
             return (object)[
@@ -41,7 +42,15 @@ class CustomerSyncService
 
         } catch (\Throwable $e) {
             error_log("QBO Customer sync failed: " . $e->getMessage());
-            // 4️⃣ Leave unsynced, retry later
+            // Leave unsynced, retry later
+
+            $this->customers->markSynced(
+                $localId,
+                $response->Customer->Id,
+                ,
+                "failed"
+            );
+
             return (object)[
                 'status'   => 'pending',
                 'local_id' => $localId,
