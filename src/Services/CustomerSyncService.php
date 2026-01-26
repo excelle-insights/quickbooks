@@ -44,11 +44,9 @@ class CustomerSyncService
             error_log("QBO Customer sync failed: " . $e->getMessage());
             // Leave unsynced, retry later
 
-            $this->customers->markSynced(
+            $this->customers->markFailed(
                 $localId,
-                $response->Customer->Id,
-                ,
-                "failed"
+                $e->getMessage()
             );
 
             return (object)[
