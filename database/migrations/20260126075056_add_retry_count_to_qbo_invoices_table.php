@@ -22,7 +22,7 @@ final class AddRetryCountToQboInvoicesTable extends AbstractMigration
         $table = $this->table('qbo_customers');
 
         if (!$table->hasColumn('retry_count')) {
-            $table->addColumn('currency', 'integer', [
+            $table->addColumn('retry_count', 'integer', [
                 'default' => 0,
                 'after' => 'currency'
             ])->update();
