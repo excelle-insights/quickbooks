@@ -37,9 +37,14 @@ final class AddStatusAndRetryCountToQboCustomersTable extends AbstractMigration
             ])->update();
         }
 
+        if (!$table->hasColumn('error_message')) {
+            $table->addColumn('error_message', 'string', [
+                'after' => 'retry_count',
+            ])->update();
+        }
         if (!$table->hasColumn('last_attempt_at')) {
             $table->addColumn('last_attempt_at', 'datetime', [
-                'after' => 'retry_count'
+                'after' => 'error_message'
             ])->update();
         }
     }
