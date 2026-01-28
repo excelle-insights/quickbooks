@@ -26,19 +26,28 @@ class PaymentClient extends BaseClient
         $lineItemData = [];
         foreach ($data['items'] as $lineItem) {
             $lineItem = (array) $lineItem;
-            if (empty($lineItem['invoice_id']) || empty($lineItem['amount'])) {
+            if (empty($lineItem['qbo_invoice_id']) || empty($lineItem['amount'])) {
                 continue; // skip invalid line
             }
 
-            $lineItemData[] = array_filter([
+            // $lineItemData[] = array_filter([
+            //     'Amount' => (float) $lineItem['amount'],
+            //     'LinkedTxn' => [
+            //         [
+            //             'TxnId' => $lineItem['invoice_id'],
+            //             'TxnType' => 'Invoice'
+            //         ]
+            //     ]
+            // ], fn($v) => $v !== null);
+            $lineItemData[] = [
                 'Amount' => (float) $lineItem['amount'],
                 'LinkedTxn' => [
                     [
-                        'TxnId' => $lineItem['invoice_id'],
+                        'TxnId' => $lineItem['qbo_invoice_id'],
                         'TxnType' => 'Invoice'
                     ]
                 ]
-            ], fn($v) => $v !== null);
+            ];
         }
 
         if (empty($lineItemData)) {
