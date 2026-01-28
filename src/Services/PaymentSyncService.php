@@ -2,89 +2,132 @@
 
 namespace ExcelleInsights\QuickBooks\Services;
 
-use ExcelleInsights\QuickBooks\Client\PaymentClient;
 use ExcelleInsights\QuickBooks\Repositories\QboPaymentRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboPaymentItemRepository;
-use DateTime;
+use ExcelleInsights\QuickBooks\Repositories\QboCustomerRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboInvoiceRepository;
+use ExcelleInsights\QuickBooks\Client\PaymentClient;
 
 class PaymentSyncService
 {
-    private PaymentClient $paymentClient;
-    private QboPaymentRepository $repository;
-    private QboPaymentItemRepository $paymentItemRepository;
-    private int $maxRetries = 3;
-
-    public function __construct(PaymentClient $paymentClient, QboPaymentRepository $repository, QboPaymentItemRepository $paymentItemRepository)
-    {
-        $this->paymentClient = $paymentClient;
-        $this->repository = $repository;
-        $this->paymentItemRepository = $paymentItemRepository;
-    }
+    public function __construct(
+        private QboPaymentRepository $paymentRepo,
+        private QboPaymentItemRepository $paymentItemRepo,
+        private QboCustomerRepository $customerRepo,
+        private QboInvoiceRepository $invoiceRepo,
+        private PaymentClient $paymentClient
+    ) {}
 
     /**
-     * Create a new payment in QuickBooks and update local DB
+     * Create payment locally and attempt sync with QuickBooks Online
      */
     public function create(array $data): object
     {
-        if (empty($data['customer_qbo_id'])) {
-            throw new \InvalidArgumentException('customer_qbo_id is required');
+        /**
+         * 1️⃣ Create payment locally
+         */
+        $localPaymentId = $this->paymentRepo->create($data);
+
+        /**
+         * 2️⃣ Persist line items locally
+         */
+        foreach ($data['line_items'] ?? [] as $item) {
+            $item['payment_id'] = $localPaymentId;
+            $this->paymentItemRepo->create($item);
         }
 
-        if (empty($data['line_items']) || !is_array($data['line_items'])) {
-            throw new \InvalidArgumentException('line_items are required');
+        /**
+         * 3️⃣ Load customer (local source of truth)
+         */
+        $customer = $this->customerRepo->find(
+            (int) $data['qbo_customer_id']
+        );
+
+        if (!$customer || !$customer->qbo_id) {
+            return (object) [
+                'status'   => 'queued',
+                'local_id' => $localPaymentId,
+                'reason'   => 'Customer not yet synced to QBO',
+            ];
         }
 
+        /**
+         * 4️⃣ Ensure all linked invoices are synced
+         */
+        $lineItems = $this->paymentItemRepo->getByPaymentId($localPaymentId);
 
-        // Send payment to QuickBooks
-        $response = $this->paymentClient->create($data);
+        foreach ($lineItems as $item) {
+            $invoice = $this->invoiceRepo->find((int) $item['qbo_invoice_id']);
 
-        $qboId = $response->Payment->Id ?? null;
-        
-        if ($qboId) {
-            // Update local DB as synced
-            $this->repository->markSynced(
-                $data['id'],
-                $qboId,
-                $response->Payment->SyncToken ?? null
-            );
-        }
-
-
-        return $response;
-    }
-    /**
-     * Sync all pending or failed payments
-     */
-    public function syncPendingPayments(): void
-    {
-        $payments = $this->repository->getPendingOrFailed();
-
-        foreach ($payments as $payment) {
-            try {
-                $payload = [
-                    'customer_qbo_id' => $payment['qbo_customer_id'],
-                    'amount' => $payment['total_amount'],
-                    'txn_date' => $payment['txn_date'],
-                    'transaction_ref' => $payment['payment_ref'],
-                    'bank_account' => $payment['deposit_account_id'],
-                    'private_note' => $payment['private_note'] ?? null,
-                    'line_items' => $this->paymentItemRepository->getItemsByPaymentId($payment['id'])
+            if (!$invoice || !$invoice->qbo_id) {
+                return (object) [
+                    'status'   => 'queued',
+                    'local_id' => $localPaymentId,
+                    'reason'   => 'Linked invoice not yet synced to QBO',
                 ];
+            }
+        }
 
-                $response = $this->paymentClient->create($payload);
+        /**
+         * 5️⃣ Build QBO payload
+         */
+        $payload = [
+            'customer_qbo_id' => $customer->qbo_id,
+            'amount'          => $data['total_amount'],
+            'txn_date'        => $data['txn_date'] ?? null,
+            'transaction_ref' => $data['payment_ref'] ?? null,
+            'bank_account'    => $data['deposit_account_id'] ?? null,
+            'private_note'    => $data['private_note'] ?? null,
+            'line_items'      => array_map(
+                fn ($item) => [
+                    'amount'     => $item['amount'],
+                    'invoice_id' => $this->invoiceRepo
+                        ->find((int) $item['invoice_id'])
+                        ->qbo_id,
+                ],
+                $lineItems
+            ),
+        ];
 
-                // Update local record as synced
-                $this->repository->markSynced(
-                    $payment['id'],
-                    $response->Payment->Id ?? null,
-                    $response->Payment->SyncToken ?? null
-                );
-            } catch (\Throwable $e) {
-                $this->repository->markFailed(
-                    $payment['id'],
-                    $e->getMessage()
+        /**
+         * 6️⃣ Attempt QBO sync
+         */
+        try {
+            $qboPayment = $this->paymentClient->create($payload);
+
+            $qboId = $qboPayment->Payment->Id ?? null;
+
+            if ($qboId) {
+                $this->paymentRepo->markSynced(
+                    $localPaymentId,
+                    $qboId
                 );
             }
+
+            return (object) [
+                'status'   => 'synced',
+                'local_id' => $localPaymentId,
+                'qbo_id'   => $qboId,
+            ];
+
+        } catch (\Throwable $e) {
+            error_log(
+                "QBO Payment sync failed: " .
+                $e->getMessage() .
+                ":" .
+                $e->getTraceAsString()
+            );
+
+            $this->paymentRepo->markFailed(
+                $localPaymentId,
+                $e->getMessage()
+            );
+
+            return (object) [
+                'status'   => 'failed',
+                'local_id' => $localPaymentId,
+                'error'    => $e->getMessage(),
+            ];
         }
     }
 }
