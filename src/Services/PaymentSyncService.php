@@ -81,8 +81,8 @@ class PaymentSyncService
             'items'      => array_map(
                 fn ($item) => [
                     'amount'     => $item['amount'],
-                    'invoice_id' => $this->invoiceRepo
-                        ->find((int) $item['invoice_id'])
+                    'qbo_invoice_id' => $this->invoiceRepo
+                        ->find((int) $item['qbo_invoice_id'])
                         ->qbo_id,
                 ],
                 $lineItems
