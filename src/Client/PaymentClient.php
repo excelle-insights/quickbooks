@@ -30,15 +30,6 @@ class PaymentClient extends BaseClient
                 continue; // skip invalid line
             }
 
-            // $lineItemData[] = array_filter([
-            //     'Amount' => (float) $lineItem['amount'],
-            //     'LinkedTxn' => [
-            //         [
-            //             'TxnId' => $lineItem['invoice_id'],
-            //             'TxnType' => 'Invoice'
-            //         ]
-            //     ]
-            // ], fn($v) => $v !== null);
             $lineItemData[] = [
                 'Amount' => (float) $lineItem['amount'],
                 'LinkedTxn' => [
@@ -55,9 +46,9 @@ class PaymentClient extends BaseClient
         }
 
         $payload = array_filter([
-            'CustomerRef' => [
-                'value' => $data['customer_qbo_id']
-            ],
+            // 'CustomerRef' => [
+            //     'value' => $data['customer_qbo_id']
+            // ],
             'TotalAmt' => (float) $data['amount'],
             'TxnDate' => $data['txn_date'] ?? date('Y-m-d'),
             'PaymentRefNum' => $data['transaction_ref'] ?? null,
