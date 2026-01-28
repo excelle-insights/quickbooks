@@ -22,6 +22,10 @@ final class AddForeignKeyToQboInvoicesField extends AbstractMigration
         $table = $this->table('qbo_payment_items');
         if ($table->hasColumn('qbo_invoice_id')) {
             $table
+                ->changeColumn('qbo_invoice_id', 'integer', [
+                    'signed' => false,
+                    'comment' => 'References id in qbo_invoices'
+                ])
                 ->addForeignKey(
                     'qbo_invoice_id',
                     'qbo_invoices',
