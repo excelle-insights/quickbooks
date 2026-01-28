@@ -19,12 +19,12 @@ class PaymentClient extends BaseClient
             throw new \InvalidArgumentException('Payment amount is required.');
         }
 
-        if (empty($data['line_items']) || !is_array($data['line_items'])) {
+        if (empty($data['items']) || !is_array($data['items'])) {
             throw new \InvalidArgumentException('Line items are required for payment.');
         }
 
         $lineItemData = [];
-        foreach ($data['line_items'] as $lineItem) {
+        foreach ($data['items'] as $lineItem) {
             $lineItem = (array) $lineItem;
             if (empty($lineItem['invoice_id']) || empty($lineItem['amount'])) {
                 continue; // skip invalid line
