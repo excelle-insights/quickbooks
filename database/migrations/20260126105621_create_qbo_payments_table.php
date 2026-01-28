@@ -50,7 +50,8 @@ final class CreateQboPaymentsTable extends AbstractMigration
             ])
 
             ->addColumn('status', 'string', [
-                'default' => 'PENDING'
+                'default' => 'pending',
+                'comment' => "pending | synced | failed"
                 // PENDING | SYNCED | FAILED
             ])
 
