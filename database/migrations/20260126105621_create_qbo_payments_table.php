@@ -24,8 +24,8 @@ final class CreateQboPaymentsTable extends AbstractMigration
         }
 
         $this->table('qbo_payments')
-            ->addColumn('pay_id', 'integer') // local payment id
-            ->addColumn('qbo_payment_id', 'string', ['null' => true])
+            ->addColumn('pay_id', 'integer', ['comment' => 'Holds local id of payment being inserted. Used to check duplicates']) // local payment id
+            ->addColumn('qbo_id', 'integer', ['null' => true, 'comment' => 'References Quickbooks Invoice->Id'])
 
             ->addColumn('qbo_customer_id', 'string')
             ->addColumn('total_amount', 'decimal', [

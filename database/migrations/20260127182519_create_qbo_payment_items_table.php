@@ -24,7 +24,7 @@ final class CreateQboPaymentItemsTable extends AbstractMigration
         }
 
         $this->table('qbo_payment_items')
-            ->addColumn('payment_id', 'integer') // FK → qbo_payments.id
+            ->addColumn('qbo_payment_id', 'integer', ['signed' => false]) // FK → qbo_payments.id
 
             ->addColumn('qbo_invoice_id', 'string')
             ->addColumn('amount', 'decimal', [
@@ -36,11 +36,11 @@ final class CreateQboPaymentItemsTable extends AbstractMigration
                 'default' => 'CURRENT_TIMESTAMP'
             ])
 
-            ->addIndex(['payment_id'])
+            ->addIndex(['qbo_payment_id'])
             ->addIndex(['qbo_invoice_id'])
 
             ->addForeignKey(
-                'payment_id',
+                'qbo_payment_id',
                 'qbo_payments',
                 'id',
                 [
