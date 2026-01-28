@@ -78,7 +78,7 @@ class PaymentSyncService
             'transaction_ref' => $data['payment_ref'] ?? null,
             'bank_account'    => $data['deposit_account_id'] ?? null,
             'private_note'    => $data['private_note'] ?? null,
-            'line_items'      => array_map(
+            'items'      => array_map(
                 fn ($item) => [
                     'amount'     => $item['amount'],
                     'invoice_id' => $this->invoiceRepo
