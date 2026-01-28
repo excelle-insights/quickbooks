@@ -37,9 +37,9 @@ class QboPaymentItemRepository
     public function getByPaymentId(int $paymentId): array
     {
         $stmt = $this->pdo->prepare("
-            SELECT * FROM qbo_payment_items WHERE payment_id = :payment_id
+            SELECT * FROM qbo_payment_items WHERE qbo_payment_id = :qbo_payment_id
         ");
-        $stmt->execute([':payment_id' => $paymentId]);
+        $stmt->execute([':qbo_payment_id' => $paymentId]);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
