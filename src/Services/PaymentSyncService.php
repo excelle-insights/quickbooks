@@ -31,103 +31,104 @@ class PaymentSyncService
         /**
          * 2️⃣ Persist line items locally
          */
-        foreach ($data['line_items'] ?? [] as $item) {
+        foreach ($data['items'] ?? [] as $item) {
             $item['payment_id'] = $localPaymentId;
             $this->paymentItemRepo->create($item);
         }
 
-        /**
-         * 3️⃣ Load customer (local source of truth)
-         */
-        $customer = $this->customerRepo->find(
-            (int) $data['qbo_customer_id']
-        );
+        // /**
+        //  * 3️⃣ Load customer (local source of truth)
+        //  */
+        // $customer = $this->customerRepo->find(
+        //     (int) $data['qbo_customer_id']
+        // );
 
-        if (!$customer || !$customer->qbo_id) {
-            return (object) [
-                'status'   => 'queued',
-                'local_id' => $localPaymentId,
-                'reason'   => 'Customer not yet synced to QBO',
-            ];
-        }
+        // if (!$customer || !$customer->qbo_id) {
+        //     return (object) [
+        //         'status'   => 'queued',
+        //         'local_id' => $localPaymentId,
+        //         'reason'   => 'Customer not yet synced to QBO',
+        //     ];
+        // }
 
-        /**
-         * 4️⃣ Ensure all linked invoices are synced
-         */
-        $lineItems = $this->paymentItemRepo->getByPaymentId($localPaymentId);
+        // /**
+        //  * 4️⃣ Ensure all linked invoices are synced
+        //  */
+        // $lineItems = $this->paymentItemRepo->getByPaymentId($localPaymentId);
 
-        foreach ($lineItems as $item) {
-            $invoice = $this->invoiceRepo->find((int) $item['qbo_invoice_id']);
+        // foreach ($lineItems as $item) {
+        //     $invoice = $this->invoiceRepo->find((int) $item['qbo_invoice_id']);
 
-            if (!$invoice || !$invoice->qbo_id) {
-                return (object) [
-                    'status'   => 'queued',
-                    'local_id' => $localPaymentId,
-                    'reason'   => 'Linked invoice not yet synced to QBO',
-                ];
-            }
-        }
+        //     if (!$invoice || !$invoice->qbo_id) {
+        //         return (object) [
+        //             'status'   => 'queued',
+        //             'local_id' => $localPaymentId,
+        //             'reason'   => 'Linked invoice not yet synced to QBO',
+        //         ];
+        //     }
+        // }
 
-        /**
-         * 5️⃣ Build QBO payload
-         */
-        $payload = [
-            'customer_qbo_id' => $customer->qbo_id,
-            'amount'          => $data['total_amount'],
-            'txn_date'        => $data['txn_date'] ?? null,
-            'transaction_ref' => $data['payment_ref'] ?? null,
-            'bank_account'    => $data['deposit_account_id'] ?? null,
-            'private_note'    => $data['private_note'] ?? null,
-            'line_items'      => array_map(
-                fn ($item) => [
-                    'amount'     => $item['amount'],
-                    'invoice_id' => $this->invoiceRepo
-                        ->find((int) $item['invoice_id'])
-                        ->qbo_id,
-                ],
-                $lineItems
-            ),
-        ];
+        // /**
+        //  * 5️⃣ Build QBO payload
+        //  */
+        // $payload = [
+        //     'customer_qbo_id' => $customer->qbo_id,
+        //     'amount'          => $data['total_amount'],
+        //     'txn_date'        => $data['txn_date'] ?? null,
+        //     'transaction_ref' => $data['payment_ref'] ?? null,
+        //     'bank_account'    => $data['deposit_account_id'] ?? null,
+        //     'private_note'    => $data['private_note'] ?? null,
+        //     'line_items'      => array_map(
+        //         fn ($item) => [
+        //             'amount'     => $item['amount'],
+        //             'invoice_id' => $this->invoiceRepo
+        //                 ->find((int) $item['invoice_id'])
+        //                 ->qbo_id,
+        //         ],
+        //         $lineItems
+        //     ),
+        // ];
 
-        /**
-         * 6️⃣ Attempt QBO sync
-         */
-        try {
-            $qboPayment = $this->paymentClient->create($payload);
+        // /**
+        //  * 6️⃣ Attempt QBO sync
+        //  */
+        // try {
+        //     $qboPayment = $this->paymentClient->create($payload);
 
-            $qboId = $qboPayment->Payment->Id ?? null;
+        //     $qboId = $qboPayment->Payment->Id ?? null;
 
-            if ($qboId) {
-                $this->paymentRepo->markSynced(
-                    $localPaymentId,
-                    $qboId
-                );
-            }
+        //     if ($qboId) {
+        //         $this->paymentRepo->markSynced(
+        //             $localPaymentId,
+        //             $qboId,
+        //             $qboPayment->Payment->SyncToken ?? null
+        //         );
+        //     }
 
-            return (object) [
-                'status'   => 'synced',
-                'local_id' => $localPaymentId,
-                'qbo_id'   => $qboId,
-            ];
+        //     return (object) [
+        //         'status'   => 'synced',
+        //         'local_id' => $localPaymentId,
+        //         'qbo_id'   => $qboId,
+        //     ];
 
-        } catch (\Throwable $e) {
-            error_log(
-                "QBO Payment sync failed: " .
-                $e->getMessage() .
-                ":" .
-                $e->getTraceAsString()
-            );
+        // } catch (\Throwable $e) {
+        //     error_log(
+        //         "QBO Payment sync failed: " .
+        //         $e->getMessage() .
+        //         ":" .
+        //         $e->getTraceAsString()
+        //     );
 
-            $this->paymentRepo->markFailed(
-                $localPaymentId,
-                $e->getMessage()
-            );
+        //     $this->paymentRepo->markFailed(
+        //         $localPaymentId,
+        //         $e->getMessage()
+        //     );
 
-            return (object) [
-                'status'   => 'failed',
-                'local_id' => $localPaymentId,
-                'error'    => $e->getMessage(),
-            ];
-        }
+        //     return (object) [
+        //         'status'   => 'failed',
+        //         'local_id' => $localPaymentId,
+        //         'error'    => $e->getMessage(),
+        //     ];
+        // }
     }
 }

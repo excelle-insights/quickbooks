@@ -6,12 +6,16 @@ use PDO;
 use ExcelleInsights\QuickBooks\Auth\Authentication;
 use ExcelleInsights\QuickBooks\Client\CustomerClient;
 use ExcelleInsights\QuickBooks\Client\InvoiceClient;
+use ExcelleInsights\QuickBooks\Client\PaymentClient;
 use ExcelleInsights\QuickBooks\Contracts\HttpClientInterface;
 use ExcelleInsights\QuickBooks\Repositories\TokenRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboCustomerRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboInvoiceRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboPaymentRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboPaymentItemRepository;
 use ExcelleInsights\QuickBooks\Services\CustomerSyncService;
 use ExcelleInsights\QuickBooks\Services\InvoiceSyncService;
+use ExcelleInsights\QuickBooks\Services\PaymentSyncService;
 use ExcelleInsights\QuickBooks\Support\EnvLoader;
 
 /**
@@ -140,6 +144,48 @@ class QuickBooksManager
         $service = new InvoiceSyncService(
             $invoiceRepo,
             $customerRepo,
+            $client
+        );
+
+        return $service->create($data);
+    }
+    
+    /**
+     * -------------------------
+     * Payments
+     * -------------------------
+     */
+    public function createPayment(array $data): object
+    {
+        if (empty($data['qbo_company_id'])) {
+            throw new \InvalidArgumentException('qbo_company_id is required');
+        }
+
+        if (empty($data['qbo_customer_id'])) {
+            throw new \InvalidArgumentException('qbo_customer_id is required');
+        }
+
+        // if (empty($data['items']) || !is_array($data['items'])) {
+        //     throw new \InvalidArgumentException('Payment items are required');
+        // }
+
+        $paymentRepo  = new QboPaymentRepository($this->pdo);
+        $paymentItemRepo  = new QboPaymentItemRepository($this->pdo);
+        $customerRepo = new QboCustomerRepository($this->pdo);
+        $invoiceRepo = new QboInvoiceRepository($this->pdo);
+
+        $client = new PaymentClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new PaymentSyncService(
+            $paymentRepo,
+            $paymentItemRepo,
+            $customerRepo,
+            $invoiceRepo,
             $client
         );
 
