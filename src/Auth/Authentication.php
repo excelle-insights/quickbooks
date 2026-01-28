@@ -34,7 +34,10 @@ class Authentication
 
         // Token still valid
         if ((time() - $updatedAt) < 3500) {
+            error_log("Access token not expirerd. Last updated at ".$record->updated_at);
             return $token['access_token'];
+        } else {
+            error_log("Access token expired. Last updated at ".$record->updated_at);
         }
 
         // Refresh
