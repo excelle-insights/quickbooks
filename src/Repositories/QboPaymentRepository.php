@@ -7,9 +7,7 @@ use DateTime;
 
 class QboPaymentRepository
 {
-    public function __construct(private PDO $pdo)
-    {
-    }
+    public function __construct(private PDO $pdo) {}
 
     /**
      * Create a new payment record
@@ -100,21 +98,44 @@ class QboPaymentRepository
             ':id'     => $id,
         ]);
     }
-    public function getUnsynced(int $limit = 100, int $maxRetries = 5): array
+    public function getUnsynced(int $limit = 50, int $maxRetries = 5): array
     {
-        $stmt = $this->pdo->prepare("
-            SELECT * FROM qbo_payments
-            WHERE status IN ('pending', 'failed') 
-                AND retry_count < :retry_count
-            ORDER BY created_at ASC
-            LIMIT :limit
-        ");
-        $stmt->execute([
-            ':retry_count' => $maxRetries,
-            ':limit' => $limit
-        ]);
+        $sql = "
+        SELECT *
+        FROM qbo_payments
+        WHERE status IN ('pending', 'failed')
+          AND retry_count < :maxRetries
+          AND (
+            last_attempt_at IS NULL OR
+            last_attempt_at < DATE_SUB(
+                NOW(),
+                INTERVAL LEAST(300, POW(2, retry_count) * 30) SECOND
+            )
+          )
+        ORDER BY created_at ASC
+        LIMIT :limit
+    ";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindValue(':maxRetries', $maxRetries, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    public function claimForProcessing(int $id): bool
+    {
+        $stmt = $this->pdo->prepare("
+        UPDATE qbo_payments
+        SET status = 'processing',
+            last_attempt_at = NOW()
+        WHERE id = :id
+          AND status IN ('pending', 'failed')
+    ");
+
+        $stmt->execute([':id' => $id]);
+
+        return $stmt->rowCount() === 1;
     }
 
     public function findByQboId(string $qboPaymentId): ?array
