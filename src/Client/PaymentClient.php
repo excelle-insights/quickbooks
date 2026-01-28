@@ -47,7 +47,7 @@ class PaymentClient extends BaseClient
 
         $payload = array_filter([
             'CustomerRef' => [
-                'value' => $data['customer_ref'] ?? 'KES'
+                'value' => $data['customer_qbo_id']
             ],
             'TotalAmt' => (float) $data['amount'],
             'TxnDate' => $data['txn_date'] ?? date('Y-m-d'),
