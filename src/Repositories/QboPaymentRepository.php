@@ -105,7 +105,7 @@ class QboPaymentRepository
         $stmt = $this->pdo->prepare("
             SELECT * FROM qbo_payments
             WHERE status IN ('pending', 'failed') 
-                AND retry_count < :maxRetries
+                AND retry_count < :retry_count
             ORDER BY created_at ASC
             LIMIT :limit
         ");
