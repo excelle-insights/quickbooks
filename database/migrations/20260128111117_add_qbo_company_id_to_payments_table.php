@@ -22,7 +22,7 @@ final class AddQboCompanyIdToPaymentsTable extends AbstractMigration
         $table = $this->table('qbo_payments');
         if(!$table->hasColumn('qbo_company_id')) {
             $table->addColumn('qbo_company_id', 'integer', [
-                    'signed' => 'false',
+                    'signed' => false,
                     'after' => 'id',
                     'comment' => 'References qbo_companies.id'
                 ]
