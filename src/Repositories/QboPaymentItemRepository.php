@@ -17,9 +17,9 @@ class QboPaymentItemRepository
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO qbo_payment_items
-            (payment_id, qbo_invoice_id, amount, created_at)
+            (qbo_payment_id, qbo_invoice_id, amount, created_at)
             VALUES
-            (:payment_id, :qbo_invoice_id, :amount, NOW())
+            (:qbo_payment_id, :qbo_invoice_id, :amount, NOW())
         ");
 
         // Accept either a single item or multiple items
@@ -27,7 +27,7 @@ class QboPaymentItemRepository
 
         foreach ($items as $item) {
             $stmt->execute([
-                ':payment_id' => $item['payment_id'],
+                ':qbo_payment_id' => $item['qbo_payment_id'],
                 ':qbo_invoice_id' => $item['qbo_invoice_id'],
                 ':amount' => $item['amount'],
             ]);
