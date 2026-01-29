@@ -16,6 +16,7 @@ require dirname(__DIR__, 4) . '/vendor/autoload.php';
 use ExcelleInsights\QuickBooks\Facade\QuickBooksManager;
 use ExcelleInsights\QuickBooks\Repositories\QboPaymentRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboPaymentItemRepository;
+use ExcelleInsights\QuickBooks\Client\PaymentClient;
 
 // Init
 $qbo = new QuickBooksManager();
