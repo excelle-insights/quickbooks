@@ -1,10 +1,22 @@
 <?php
 
+/**
+ * Retries pending/failed QBO payments using exponential backoff.
+ *
+ * Each failure increases `retry_count`, delaying the next retry
+ * (2^retry_count × 30s, capped at 5 minutes) to avoid rate limits.
+ *
+ * Rows are atomically locked by marking them as `processing`
+ * to prevent duplicate syncs when multiple cron jobs run.
+ */
+
+
 require dirname(__DIR__, 4) . '/vendor/autoload.php';
 
 use ExcelleInsights\QuickBooks\Facade\QuickBooksManager;
 use ExcelleInsights\QuickBooks\Repositories\QboPaymentRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboPaymentItemRepository;
+use ExcelleInsights\QuickBooks\Client\PaymentClient;
 
 // Init
 $qbo = new QuickBooksManager();
@@ -15,7 +27,7 @@ $repo = new QboPaymentRepository($pdo);
 $itemRepo = new QboPaymentItemRepository($pdo);
 
 // Fetch eligible payments
-$payments = $repo->getUnsynced(50);
+$payments = $repo->getRetryBatch(50);
 
 foreach ($payments as $payment) {
 

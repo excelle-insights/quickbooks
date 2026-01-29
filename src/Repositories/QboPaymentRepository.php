@@ -98,7 +98,23 @@ class QboPaymentRepository
             ':id'     => $id,
         ]);
     }
-    public function getUnsynced(int $limit = 50, int $maxRetries = 5): array
+    public function getUnsynced(int $limit = 50): array
+    {
+        $sql = "
+        SELECT *
+        FROM qbo_payments
+        WHERE status IN ('pending', 'failed')
+        ORDER BY created_at ASC
+        LIMIT :limit
+    ";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    public function getRetryBatch(int $limit = 50, int $maxRetries = 5): array
     {
         $sql = "
         SELECT *
