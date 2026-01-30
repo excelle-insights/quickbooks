@@ -24,6 +24,7 @@ class InvoiceClient extends BaseClient
                 'value' => $data['customer_qbo_id']
             ],
             'DocNumber'   => $data['invoice_number'] ?? null,
+            'DueDate'     => $data['txn_date'] ?? date('Y-m-d'),
             'TxnDate'     => $data['txn_date'] ?? date('Y-m-d'),
             'PrivateNote' => $data['notes'] ?? null,
             'Line'        => $this->buildLines($data['items'])
