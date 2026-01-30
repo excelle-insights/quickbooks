@@ -15,6 +15,7 @@ class QboCustomerRepository
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO qbo_customers (
+                local_id,
                 qbo_company_id,
                 name,
                 display_name,
@@ -28,10 +29,11 @@ class QboCustomerRepository
                 active,
                 created_at,
                 updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
 
         $stmt->execute([
+            $data['local_id'],
             $data['qbo_company_id'],
             $data['name'],
             $data['display_name'] ?? $data['name'],

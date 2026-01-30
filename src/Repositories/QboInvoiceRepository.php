@@ -15,6 +15,7 @@ class QboInvoiceRepository
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO qbo_invoices (
+                local_id,
                 qbo_company_id,
                 qbo_customer_id,
                 invoice_number,
@@ -25,6 +26,7 @@ class QboInvoiceRepository
                 created_at,
                 updated_at
             ) VALUES (
+                :local_id
                 :company_id,
                 :qbo_customer_id,
                 :invoice_number,
@@ -38,6 +40,7 @@ class QboInvoiceRepository
         ");
 
         $stmt->execute([
+            ':local_id'       => $data['local_id'],
             ':company_id'       => $data['qbo_company_id'],
             ':qbo_customer_id'  => $data['qbo_customer_id'],
             ':invoice_number'   => $data['invoice_number'] ?? null,
