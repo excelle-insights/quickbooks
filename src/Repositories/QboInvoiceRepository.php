@@ -26,7 +26,7 @@ class QboInvoiceRepository
                 created_at,
                 updated_at
             ) VALUES (
-                :local_id
+                :local_id,
                 :company_id,
                 :qbo_customer_id,
                 :invoice_number,
