@@ -18,7 +18,7 @@ class QboPaymentRepository
             INSERT INTO qbo_payments
             (local_id, pay_id, qbo_customer_id, total_amount, txn_date, payment_ref, deposit_account_id, private_note, status, retry_count, error_message, last_attempt_at, created_at, updated_at)
             VALUES
-            (:pay_id, :qbo_customer_id, :total_amount, :txn_date, :payment_ref, :deposit_account_id, :private_note, :status, :retry_count, :error_message, :last_attempt_at, NOW(), NOW())
+            (:local_id, :pay_id, :qbo_customer_id, :total_amount, :txn_date, :payment_ref, :deposit_account_id, :private_note, :status, :retry_count, :error_message, :last_attempt_at, NOW(), NOW())
         ");
 
         $stmt->execute([
