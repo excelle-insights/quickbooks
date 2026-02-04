@@ -27,9 +27,9 @@ class QboInvoiceItemRepository
         ");
 
         $stmt->execute([
-            $data['qbo_invoice_id'] ?? '',
-            $data['item_id'] ?? '',
-            $data['item_name'] ?? '',
+            $data['qbo_invoice_id'] ?? null,
+            $data['item_id'] ?? null,
+            $data['item_name'] ?? null,
             $data['description'] ?? '',
             $data['quantity'] ?? 1,
             $data['unit_price'] ?? 0,
