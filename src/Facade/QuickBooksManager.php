@@ -11,6 +11,7 @@ use ExcelleInsights\QuickBooks\Contracts\HttpClientInterface;
 use ExcelleInsights\QuickBooks\Repositories\TokenRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboCustomerRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboInvoiceRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboInvoiceItemRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboPaymentRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboPaymentItemRepository;
 use ExcelleInsights\QuickBooks\Services\CustomerSyncService;
@@ -132,6 +133,7 @@ class QuickBooksManager
         }
 
         $invoiceRepo  = new QboInvoiceRepository($this->pdo);
+        $invoiceItemRepo  = new QboInvoiceItemRepository($this->pdo);
         $customerRepo = new QboCustomerRepository($this->pdo);
 
         $client = new InvoiceClient(
@@ -142,7 +144,8 @@ class QuickBooksManager
         );
 
         $service = new InvoiceSyncService(
-            $invoiceRepo,
+            $invoiceRepo, 
+            $invoiceItemRepo,
             $customerRepo,
             $client
         );

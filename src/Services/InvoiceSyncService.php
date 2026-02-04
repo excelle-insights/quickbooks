@@ -3,6 +3,7 @@
 namespace ExcelleInsights\QuickBooks\Services;
 
 use ExcelleInsights\QuickBooks\Repositories\QboInvoiceRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboInvoiceItemRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboCustomerRepository;
 use ExcelleInsights\QuickBooks\Client\InvoiceClient;
 
@@ -10,6 +11,7 @@ class InvoiceSyncService
 {
     public function __construct(
         private QboInvoiceRepository $invoiceRepo,
+        private QboInvoiceItemRepository $invoiceItemRepo,
         private QboCustomerRepository $customerRepo,
         private InvoiceClient $invoiceClient
     ) {}
@@ -21,6 +23,11 @@ class InvoiceSyncService
     {
         // Insert invoice locally first
         $localId = $this->invoiceRepo->create($data);
+
+        foreach ($data['items'] ?? [] as $item) {
+            $item['qbo_invoice_id'] = $localId;
+            $this->invoiceItemRepo->create($item);
+        }
 
         // Load customer (local source of truth)
         $customer = $this->customerRepo->find(
