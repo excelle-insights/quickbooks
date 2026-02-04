@@ -23,7 +23,7 @@ class QboInvoiceItemRepository
                 unit_price,
                 created_at,
                 updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
 
         $stmt->execute([
