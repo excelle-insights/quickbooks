@@ -152,7 +152,9 @@ class QuickBooksManager
 
         return $service->create($data);
     }
-    
+    public function getInvoice () {
+        return 
+    }
     /**
      * -------------------------
      * Payments
