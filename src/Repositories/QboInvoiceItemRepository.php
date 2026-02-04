@@ -21,7 +21,6 @@ class QboInvoiceItemRepository
                 description,
                 quantity,
                 unit_price,
-                amount,
                 created_at,
                 updated_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
@@ -34,7 +33,6 @@ class QboInvoiceItemRepository
             $data['description'] ?? '',
             $data['quantity'] ?? 1,
             $data['unit_price'] ?? 0,
-            ($data['quantity'] ?? 1) * ($data['unit_price'] ?? 0),
         ]);
     }
 
