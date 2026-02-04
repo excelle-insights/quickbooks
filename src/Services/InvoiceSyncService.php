@@ -82,4 +82,9 @@ class InvoiceSyncService
             ];
         }
     }
+    public function getById(int $invoice_id)
+    {
+        $qboInvoice = $this->invoiceClient->getById($invoice_id);
+        return $qboInvoice;
+    }
 }
