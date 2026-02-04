@@ -11,7 +11,7 @@ class QboInvoiceItemRepository
     /**
      * Insert a local invoice line item
      */
-    public function create(int $invoiceId, array $data): void
+    public function create(array $data): void
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO qbo_invoice_items (
@@ -28,7 +28,7 @@ class QboInvoiceItemRepository
         ");
 
         $stmt->execute([
-            $invoiceId,
+            $data['qbo_invoice_id'] ?? '',
             $data['item_id'] ?? '',
             $data['item_name'] ?? '',
             $data['description'] ?? '',
