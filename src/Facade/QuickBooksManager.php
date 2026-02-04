@@ -152,8 +152,14 @@ class QuickBooksManager
 
         return $service->create($data);
     }
-    public function getInvoice () {
-        return 
+    public function getInvoice ($id) {
+        $client = new InvoiceClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+        return $client->getById($id);
     }
     /**
      * -------------------------
