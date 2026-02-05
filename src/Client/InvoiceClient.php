@@ -80,14 +80,17 @@ class InvoiceClient extends BaseClient
             $lines[] = array_filter([
                 'DetailType' => 'SalesItemLineDetail',
                 'Amount'     => isset($item['amount']) ? (float) $item['amount'] : 0,
-                'Description'=> $item['description'] ?? null,
+                'Description' => $item['description'] ?? null,
                 'SalesItemLineDetail' => array_filter([
                     'ItemRef' => array_filter([
                         'value' => $item['item_id'] ?? null,
                         'name'  => $item['item_name'] ?? null
                     ], fn($v) => $v !== null),
                     'Qty'       => isset($item['quantity']) ? (float) $item['quantity'] : 1,
-                    'UnitPrice' => isset($item['unit_price']) ? (float) $item['unit_price'] : 0
+                    'UnitPrice' => isset($item['unit_price']) ? (float) $item['unit_price'] : 0,
+                    'TaxCodeRef' => [
+                        'value' => $item['tax_code'] ?? 'NON'
+                    ]
                 ])
             ], fn($v) => $v !== null);
         }
