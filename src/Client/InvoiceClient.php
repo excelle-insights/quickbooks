@@ -27,7 +27,12 @@ class InvoiceClient extends BaseClient
             'DueDate'     => $data['txn_date'] ?? date('Y-m-d'),
             'TxnDate'     => $data['txn_date'] ?? date('Y-m-d'),
             'PrivateNote' => $data['notes'] ?? null,
-            'Line'        => $this->buildLines($data['items'])
+            'Line'        => $this->buildLines($data['items']),
+            'TxnTaxDetail'=> [
+                "TxnTaxCodeRef" => [
+                    'value' => 6
+                ]
+            ]
         ], fn($v) => $v !== null);
 
         return $this->sendRequest('POST', $this->endpoint('invoice'), $payload);
