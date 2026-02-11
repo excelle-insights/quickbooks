@@ -7,6 +7,7 @@ use ExcelleInsights\QuickBooks\Auth\Authentication;
 use ExcelleInsights\QuickBooks\Client\CustomerClient;
 use ExcelleInsights\QuickBooks\Client\InvoiceClient;
 use ExcelleInsights\QuickBooks\Client\PaymentClient;
+use ExcelleInsights\QuickBooks\Client\AccountClient;
 use ExcelleInsights\QuickBooks\Contracts\HttpClientInterface;
 use ExcelleInsights\QuickBooks\Repositories\TokenRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboCustomerRepository;
@@ -14,9 +15,11 @@ use ExcelleInsights\QuickBooks\Repositories\QboInvoiceRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboInvoiceItemRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboPaymentRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboPaymentItemRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboAccountRepository;
 use ExcelleInsights\QuickBooks\Services\CustomerSyncService;
 use ExcelleInsights\QuickBooks\Services\InvoiceSyncService;
 use ExcelleInsights\QuickBooks\Services\PaymentSyncService;
+use ExcelleInsights\QuickBooks\Services\AccountSyncService;
 use ExcelleInsights\QuickBooks\Support\EnvLoader;
 
 /**
@@ -63,7 +66,7 @@ class QuickBooksManager
 
         $this->pdo = $pdo;
 
-                /**
+        /**
          * 🔌 HTTP client
          * Default is instantiated internally
          */
@@ -144,7 +147,7 @@ class QuickBooksManager
         );
 
         $service = new InvoiceSyncService(
-            $invoiceRepo, 
+            $invoiceRepo,
             $invoiceItemRepo,
             $customerRepo,
             $client
@@ -152,7 +155,8 @@ class QuickBooksManager
 
         return $service->create($data);
     }
-    public function getInvoice ($id) {
+    public function getInvoice($id)
+    {
         $client = new InvoiceClient(
             $this->baseUrl,
             $this->companyId,
@@ -197,6 +201,39 @@ class QuickBooksManager
             $paymentItemRepo,
             $customerRepo,
             $invoiceRepo,
+            $client
+        );
+
+        return $service->create($data);
+    }
+    public function createAccount(array $data): object
+    {
+        if (empty($data['qbo_company_id'])) {
+            throw new \InvalidArgumentException('qbo_company_id is required');
+        }
+
+        if (empty($data['name'])) {
+            throw new \InvalidArgumentException('Account name is required');
+        }
+
+        if (empty($data['account_type'])) {
+            throw new \InvalidArgumentException('account_type is required');
+        }
+
+        // Repository
+        $accountRepo = new QboAccountRepository($this->pdo);
+
+        // QBO client
+        $client = new AccountClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        // Sync service
+        $service = new AccountSyncService(
+            $accountRepo,
             $client
         );
 
