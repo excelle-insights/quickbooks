@@ -8,6 +8,7 @@ use ExcelleInsights\QuickBooks\Client\CustomerClient;
 use ExcelleInsights\QuickBooks\Client\InvoiceClient;
 use ExcelleInsights\QuickBooks\Client\PaymentClient;
 use ExcelleInsights\QuickBooks\Client\AccountClient;
+use ExcelleInsights\QuickBooks\Client\JournalEntryClient;
 use ExcelleInsights\QuickBooks\Contracts\HttpClientInterface;
 use ExcelleInsights\QuickBooks\Repositories\TokenRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboCustomerRepository;
@@ -16,11 +17,15 @@ use ExcelleInsights\QuickBooks\Repositories\QboInvoiceItemRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboPaymentRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboPaymentItemRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboAccountRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboJournalEntryRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboJournalEntryLineRepository;
 use ExcelleInsights\QuickBooks\Services\CustomerSyncService;
 use ExcelleInsights\QuickBooks\Services\InvoiceSyncService;
 use ExcelleInsights\QuickBooks\Services\PaymentSyncService;
 use ExcelleInsights\QuickBooks\Services\AccountSyncService;
+use ExcelleInsights\QuickBooks\Services\JournalEntrySyncService;
 use ExcelleInsights\QuickBooks\Support\EnvLoader;
+use ExcelleInsights\QuickBooks\Validation\JournalEntryValidator;
 
 /**
  * Facade for QuickBooks integration
@@ -234,6 +239,41 @@ class QuickBooksManager
         // Sync service
         $service = new AccountSyncService(
             $accountRepo,
+            $client
+        );
+
+        return $service->create($data);
+    }
+    public function getAllAccounts()
+    {
+        $client = new AccountClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+        return $client->getAll();
+    }
+    public function createJournalEntry(array $data): object
+    {
+        JournalEntryValidator::validate($data);
+
+        $data['txn_date'] = date('Y-m-d', strtotime($data['txn_date']));
+        $data['doc_number'] ??= null;
+
+        $jeRepo  = new QboJournalEntryRepository($this->pdo);
+        $jeItemRepo  = new QboJournalEntryLineRepository($this->pdo);
+
+        $client = new JournalEntryClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new JournalEntrySyncService(
+            $jeRepo,
+            $jeItemRepo,
             $client
         );
 

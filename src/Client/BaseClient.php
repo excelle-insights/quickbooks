@@ -85,6 +85,16 @@ abstract class BaseClient
      */
     protected function endpoint(string $path, int $minorVersion = 69): string
     {
+        // Check if path has 'query'
+        if (strpos($path, 'query') !== false) {
+            // If it already has query parameters, append minorversion with &
+            return sprintf(
+                '/v3/company/%s/%s&minorversion=%d',
+                $this->companyId,
+                ltrim($path, '/'),
+                $minorVersion
+            );
+        }
         return sprintf(
             '/v3/company/%s/%s?minorversion=%d',
             $this->companyId,
