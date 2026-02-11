@@ -28,7 +28,7 @@ final class CreateQboAccountsTable extends AbstractMigration
             // QuickBooks identifiers
             ->addColumn('qbo_id', 'string', [
                 'limit' => 64,
-                'null'  => false,
+                'null'  => true,
             ])
             ->addColumn('sync_token', 'string', [
                 'limit' => 20,

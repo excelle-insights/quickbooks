@@ -40,7 +40,7 @@ class QboAccountRepository
             $data['account_sub_type'] ?? null,
             $data['classification'] ?? null,
             $data['description'] ?? null,
-            $data['sub_account'] ?? false,
+            $data['sub_account'] ?? null,
             $data['parent_qbo_id'] ?? null,
             $data['currency'] ?? null,
             $data['active'] ?? true,
