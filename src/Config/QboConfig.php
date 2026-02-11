@@ -1,7 +1,7 @@
 <?php
 namespace ExcelleInsights\QuickBooks\Config;
 
-use ExcelleInsights\QuickBooks\Support\PackageEnvLoader;
+use ExcelleInsights\QuickBooks\Support\EnvLoader;
 
 final class QboConfig
 {
@@ -10,7 +10,7 @@ final class QboConfig
     private static function boot(): void
     {
         if (!self::$booted) {
-            PackageEnvLoader::load();
+            EnvLoader::load();
             self::$booted = true;
         }
     }
