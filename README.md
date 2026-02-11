@@ -40,7 +40,7 @@ This package uses Phinx for database migrations.
 1. Run the migrations:
 
 ```bash
-php vendor/excelle-insights/quickbooks/scripts/migrate.php
+php vendor/excelle-insights/quickbooks/migrate.php
 ```
 
 Tables created include:
