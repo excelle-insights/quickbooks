@@ -3,21 +3,40 @@
 
 declare(strict_types=1);
 
-require dirname(__DIR__, 3) . '/vendor/autoload.php';
-
 use Symfony\Component\Process\Process;
+use ExcelleInsights\QuickBooks\Support\EnvLoader;
 
-$projectRoot  = realpath(dirname(__DIR__, 3));
-$dbConfigFile = $projectRoot . '/config/env/.database.json';
+require_once 'vendor/autoload.php';
 
 /**
+ * ------------------------------------------------------------
+ * 0️⃣ Resolve project root
+ * ------------------------------------------------------------
+ */
+$options = getopt('', ['debug']);
+
+$rootPath = realpath(dirname(__DIR__, 3));
+if ($rootPath === false) {
+    fwrite(STDERR, "Unable to resolve project root.\n");
+    exit(1);
+}
+
+$projectRoot = isset($options['debug'])
+    ? __DIR__ . '/'
+    : rtrim($rootPath, '/') . '/';
+$envFile = $projectRoot . '.env';
+$migrationsDir = isset($options['debug']) ? $projectRoot . 'database/migrations' : $projectRoot . 'vendor/excelle-insights/quickbooks/database/migrations';
+
+/**
+ * ------------------------------------------------------------
  * Helper to safely run processes cross-platform
+ * ------------------------------------------------------------
  */
 function runProcess(Process $process): void
 {
     $process->setTimeout(null);
 
-    if (Process::isTtySupported()) {
+    if (Process::isTtySupported() && PHP_SAPI === 'cli') {
         $process->setTty(true);
     }
 
@@ -26,34 +45,45 @@ function runProcess(Process $process): void
     });
 
     if (!$process->isSuccessful()) {
-        throw new RuntimeException($process->getErrorOutput());
+        throw new RuntimeException(
+            trim($process->getErrorOutput() ?: $process->getOutput())
+        );
     }
 }
 
 /**
+ * ------------------------------------------------------------
  * 1️⃣ Load DB config
+ * ------------------------------------------------------------
  */
-if (!file_exists($dbConfigFile)) {
-    echo "Database config not found.\n";
+
+
+if (!file_exists($envFile)) {
+    fwrite(STDERR, "Database config not found (.env missing).\n");
     exit(1);
 }
 
-$settings = json_decode(file_get_contents($dbConfigFile));
+EnvLoader::load($envFile);
 
-$host     = $settings->host ?? '';
-$dbname   = $settings->database ?? '';
-$user     = $settings->user ?? '';
-$password = $settings->password ?? '';
+$host     = $_ENV['DB_HOST']     ?? null;
+$dbname   = $_ENV['DB_NAME']     ?? null;
+$user     = $_ENV['DB_USER']     ?? null;
+$password = $_ENV['DB_PASSWORD'] ?? '';
+$driver   = $_ENV['DB_DRIVER']   ?? 'mysql';
 
 if (!$host || !$dbname || !$user) {
-    echo "Database config incomplete.\n";
+    fwrite(STDERR, "Database config incomplete.\n");
     exit(1);
 }
 
 /**
+ * ------------------------------------------------------------
  * 2️⃣ Ensure Phinx exists
+ * ------------------------------------------------------------
  */
-$phinxPath = $projectRoot . '/vendor/bin/phinx';
+$phinxPath = file_exists($projectRoot . 'vendor/bin/phinx')
+    ? $projectRoot . 'vendor/bin/phinx'
+    : $projectRoot . 'vendor/bin/phinx.bat';
 
 if (!file_exists($phinxPath)) {
     echo "Phinx not found. Installing...\n";
@@ -65,33 +95,35 @@ if (!file_exists($phinxPath)) {
         ));
         echo "Phinx installed successfully.\n";
     } catch (Throwable $e) {
-        echo "Failed to install Phinx:\n{$e->getMessage()}\n";
+        fwrite(STDERR, "Failed to install Phinx:\n{$e->getMessage()}\n");
         exit(1);
     }
 }
 
 /**
+ * ------------------------------------------------------------
  * 3️⃣ Generate temporary Phinx config
+ * ------------------------------------------------------------
  */
-$tempConfig = sys_get_temp_dir() . '/quickbooks_phinx.php';
+$tempConfig = sys_get_temp_dir() . '/quickbooks_phinx_' . uniqid() . '.php';
 
 file_put_contents($tempConfig, <<<PHP
 <?php
 return [
     'paths' => [
-        'migrations' => '{$projectRoot}/vendor/excelle-insights/quickbooks/database/migrations',
+        'migrations' => '{$migrationsDir}',
     ],
     'environments' => [
         'default_migration_table' => 'phinxlog',
         'default_environment' => 'development',
         'development' => [
-            'adapter' => 'mysql',
+            'adapter' => '{$driver}',
             'host' => '{$host}',
             'name' => '{$dbname}',
             'user' => '{$user}',
             'pass' => '{$password}',
             'port' => '3306',
-            'charset' => 'utf8',
+            'charset' => 'utf8mb4',
         ],
     ],
     'version_order' => 'creation',
@@ -100,7 +132,9 @@ PHP
 );
 
 /**
+ * ------------------------------------------------------------
  * 4️⃣ Run migrations
+ * ------------------------------------------------------------
  */
 try {
     runProcess(new Process(
@@ -108,9 +142,9 @@ try {
         $projectRoot
     ));
 
-    echo "QuickBooks migrations ran successfully!\n";
+    echo "✅ QuickBooks migrations ran successfully!\n";
 } catch (Throwable $e) {
-    echo "Migrations failed:\n{$e->getMessage()}\n";
+    fwrite(STDERR, "❌ Migrations failed:\n{$e->getMessage()}\n");
     unlink($tempConfig);
     exit(1);
 }
