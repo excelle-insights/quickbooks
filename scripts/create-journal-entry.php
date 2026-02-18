@@ -15,12 +15,12 @@ $data = [
         [
             'description' => 'Test JE Line Item 1',
             'debit' => 100.00,
-            'account_id' => 123, // Replace with a valid QBO account ID
+            'account_qbo_id' => 47, // Replace with a valid QBO account ID
         ],
         [
             'description' => 'Test JE Line Item 2',
             'credit' => 100.00,
-            'account_id' => 456, // Replace with a valid QBO account ID
+            'account_qbo_id' => 64, // Replace with a valid QBO account ID
         ],
     ],
     'txn_date' => date('Y-m-d'),
