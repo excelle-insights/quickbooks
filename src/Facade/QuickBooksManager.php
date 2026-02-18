@@ -9,6 +9,8 @@ use ExcelleInsights\QuickBooks\Client\InvoiceClient;
 use ExcelleInsights\QuickBooks\Client\PaymentClient;
 use ExcelleInsights\QuickBooks\Client\AccountClient;
 use ExcelleInsights\QuickBooks\Client\JournalEntryClient;
+use ExcelleInsights\QuickBooks\Client\VendorClient;
+
 use ExcelleInsights\QuickBooks\Contracts\HttpClientInterface;
 use ExcelleInsights\QuickBooks\Repositories\TokenRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboCustomerRepository;
@@ -19,13 +21,18 @@ use ExcelleInsights\QuickBooks\Repositories\QboPaymentItemRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboAccountRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboJournalEntryRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboJournalEntryLineRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboVendorRepository;
+
 use ExcelleInsights\QuickBooks\Services\CustomerSyncService;
 use ExcelleInsights\QuickBooks\Services\InvoiceSyncService;
 use ExcelleInsights\QuickBooks\Services\PaymentSyncService;
 use ExcelleInsights\QuickBooks\Services\AccountSyncService;
 use ExcelleInsights\QuickBooks\Services\JournalEntrySyncService;
+use ExcelleInsights\QuickBooks\Services\VendorSyncService;
 use ExcelleInsights\QuickBooks\Support\EnvLoader;
+
 use ExcelleInsights\QuickBooks\Validation\JournalEntryValidator;
+use ExcelleInsights\QuickBooks\Validation\VendorValidator;
 
 /**
  * Facade for QuickBooks integration
@@ -274,6 +281,26 @@ class QuickBooksManager
         $service = new JournalEntrySyncService(
             $jeRepo,
             $jeItemRepo,
+            $client
+        );
+
+        return $service->create($data);
+    }
+    public function createVendor(array $data): object
+    {
+        VendorValidator::validate($data);
+
+        $vendorRepo = new QboVendorRepository($this->pdo);
+
+        $client = new VendorClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new VendorSyncService(
+            $vendorRepo,
             $client
         );
 
