@@ -3,13 +3,16 @@
 namespace ExcelleInsights\QuickBooks\Facade;
 
 use PDO;
+use ExcelleInsights\QuickBooks\Support\EnvLoader;
 use ExcelleInsights\QuickBooks\Auth\Authentication;
+
 use ExcelleInsights\QuickBooks\Client\CustomerClient;
 use ExcelleInsights\QuickBooks\Client\InvoiceClient;
 use ExcelleInsights\QuickBooks\Client\PaymentClient;
 use ExcelleInsights\QuickBooks\Client\AccountClient;
 use ExcelleInsights\QuickBooks\Client\JournalEntryClient;
 use ExcelleInsights\QuickBooks\Client\VendorClient;
+use ExcelleInsights\QuickBooks\Client\BillClient;
 
 use ExcelleInsights\QuickBooks\Contracts\HttpClientInterface;
 use ExcelleInsights\QuickBooks\Repositories\TokenRepository;
@@ -22,6 +25,8 @@ use ExcelleInsights\QuickBooks\Repositories\QboAccountRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboJournalEntryRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboJournalEntryLineRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboVendorRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboBillRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboBillItemRepository;
 
 use ExcelleInsights\QuickBooks\Services\CustomerSyncService;
 use ExcelleInsights\QuickBooks\Services\InvoiceSyncService;
@@ -29,10 +34,11 @@ use ExcelleInsights\QuickBooks\Services\PaymentSyncService;
 use ExcelleInsights\QuickBooks\Services\AccountSyncService;
 use ExcelleInsights\QuickBooks\Services\JournalEntrySyncService;
 use ExcelleInsights\QuickBooks\Services\VendorSyncService;
-use ExcelleInsights\QuickBooks\Support\EnvLoader;
+use ExcelleInsights\QuickBooks\Services\BillSyncService;
 
 use ExcelleInsights\QuickBooks\Validation\JournalEntryValidator;
 use ExcelleInsights\QuickBooks\Validation\VendorValidator;
+use ExcelleInsights\QuickBooks\Validation\BillValidator;
 
 /**
  * Facade for QuickBooks integration
@@ -306,4 +312,29 @@ class QuickBooksManager
 
         return $service->create($data);
     }
+    public function createBill(array $data): object
+    {
+        $validator = new BillValidator();
+        $validator->validateCreate($data);
+
+        $billRepository  = new QboBillRepository($this->pdo);
+        $billItemRepository  = new QboBillItemRepository($this->pdo);
+
+        $client = new BillClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new BillSyncService(
+            $billRepository,
+            $billItemRepository,
+            $client
+        );
+
+        // 3️⃣ Execute sync
+        return $service->create($data);
+    }
+
 }
