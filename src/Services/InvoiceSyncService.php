@@ -5,6 +5,7 @@ namespace ExcelleInsights\QuickBooks\Services;
 use ExcelleInsights\QuickBooks\Repositories\QboInvoiceRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboInvoiceItemRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboCustomerRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboClassRepository;
 use ExcelleInsights\QuickBooks\Client\InvoiceClient;
 
 class InvoiceSyncService
@@ -13,6 +14,7 @@ class InvoiceSyncService
         private QboInvoiceRepository $invoiceRepo,
         private QboInvoiceItemRepository $invoiceItemRepo,
         private QboCustomerRepository $customerRepo,
+        private QboClassRepository $classRepo,
         private InvoiceClient $invoiceClient
     ) {}
 
@@ -24,10 +26,32 @@ class InvoiceSyncService
         // Insert invoice locally first
         $localId = $this->invoiceRepo->create($data);
 
+        $items = [];
+
         foreach ($data['items'] ?? [] as $item) {
+
             $item['qbo_invoice_id'] = $localId;
             $this->invoiceItemRepo->create($item);
+
+            // Resolve class
+            if (!empty($item['qbo_class_id'])) {
+
+                $class = $this->classRepo->find($item['qbo_class_id']);
+
+                if ($class && $class->qbo_id) {
+                    $item['class_qbo_id'] = $class->qbo_id;
+                } else {
+                    throw new \RuntimeException(
+                        "Class must be synced before using it in invoice."
+                    );
+                }
+            }
+
+            $items[] = $item; 
         }
+        $data['items'] = $items;
+
+        echo "Output here: " . json_encode($data) . "\n";
 
         // Load customer (local source of truth)
         $customer = $this->customerRepo->find(

@@ -1,5 +1,5 @@
 <?php
-require '../../vendor/autoload.php';
+require dirname(__DIR__) . '/vendor/autoload.php';
 
 use ExcelleInsights\QuickBooks\Facade\QuickBooksManager;
 
@@ -9,8 +9,8 @@ $qbo = new QuickBooksManager();
 // Create an invoice
 $result = $qbo->createInvoice([
     'qbo_company_id'  => 1,
-    'qbo_customer_id' => 10, // Replace with actual QBO customer ID
-    'invoice_number'  => 'INV-002',
+    'qbo_customer_id' => 2, // Replace with actual QBO customer ID
+    'invoice_number'  => 'INV-0042',
     'txn_date'        => '2026-01-22',
     'due_date'        => '2026-02-05',
     'currency'        => 'KES',
@@ -19,7 +19,8 @@ $result = $qbo->createInvoice([
             'description' => 'Consulting Services',
             'quantity'    => 1,
             'unit_price'  => 7000,
-            'amount'      => 7000, // quantity * unit_price
+            'amount'      => 7000, 
+            'qbo_class_id' => 1, // Optional: Replace with actual QBO class ID if needed
         ]
     ],
 ]);
