@@ -42,15 +42,28 @@ This package uses Phinx for database migrations.
 ```bash
 php vendor/excelle-insights/quickbooks/migrate.php
 ```
-
+For testing while developing the package, use the following command
+```bash
+php migrate.php --debug=true
+```
 Tables created include:
 
 - api_access_tokens
+- qbo_invoice_items
+- http_request_logs
+- qbo_accounts
 - qbo_companies
 - qbo_customers
 - qbo_invoices
 - qbo_invoice_items
-- http_request_logs
+- qbo_journal_entries
+- qbo_journal_entry_lines
+- qbo_payments
+- qbo_payment_items
+- qbo_vendors
+- qbo_bills
+- qbo_bill_items
+
 
 ## Quick Start
 1. Get the OAuth Authorization URL
