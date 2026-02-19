@@ -28,7 +28,7 @@ class InvoiceClient extends BaseClient
             'TxnDate'     => $data['txn_date'] ?? date('Y-m-d'),
             'PrivateNote' => $data['notes'] ?? null,
             'Line'        => $this->buildLines($data['items']),
-            'TxnTaxDetail'=> [
+            'TxnTaxDetail' => [
                 "TxnTaxCodeRef" => [
                     'value' => 6
                 ]
@@ -82,22 +82,41 @@ class InvoiceClient extends BaseClient
         $lines = [];
 
         foreach ($items as $item) {
-            $lines[] = array_filter([
+
+            $salesItemDetail = [];
+
+            // ✅ Only include ItemRef if it has a value
+            if (!empty($item['item_id'])) {
+                $salesItemDetail['ItemRef'] = [
+                    'value' => $item['item_id']
+                ];
+            }
+
+            $salesItemDetail['Qty'] = isset($item['quantity'])
+                ? (float) $item['quantity']
+                : 1;
+
+            $salesItemDetail['UnitPrice'] = isset($item['unit_price'])
+                ? (float) $item['unit_price']
+                : 0;
+
+            $salesItemDetail['TaxCodeRef'] = [
+                'value' => $item['tax_code'] ?? 'NON'
+            ];
+
+            // ✅ Add ClassRef only if valid
+            if (!empty($item['class_qbo_id'])) {
+                $salesItemDetail['ClassRef'] = [
+                    'value' => $item['class_qbo_id']
+                ];
+            }
+
+            $lines[] = [
                 'DetailType' => 'SalesItemLineDetail',
-                'Amount'     => isset($item['amount']) ? (float) $item['amount'] : 0,
+                'Amount'     => (float) $item['amount'],
                 'Description' => $item['description'] ?? null,
-                'SalesItemLineDetail' => array_filter([
-                    'ItemRef' => array_filter([
-                        'value' => $item['item_id'] ?? null,
-                        'name'  => $item['item_name'] ?? null
-                    ], fn($v) => $v !== null),
-                    'Qty'       => isset($item['quantity']) ? (float) $item['quantity'] : 1,
-                    'UnitPrice' => isset($item['unit_price']) ? (float) $item['unit_price'] : 0,
-                    'TaxCodeRef' => [
-                        'value' => $item['tax_code'] ?? 'NON'
-                    ]
-                ])
-            ], fn($v) => $v !== null);
+                'SalesItemLineDetail' => $salesItemDetail
+            ];
         }
 
         return $lines;

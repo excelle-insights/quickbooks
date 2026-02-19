@@ -155,6 +155,7 @@ class QuickBooksManager
         $invoiceRepo  = new QboInvoiceRepository($this->pdo);
         $invoiceItemRepo  = new QboInvoiceItemRepository($this->pdo);
         $customerRepo = new QboCustomerRepository($this->pdo);
+        $classRepo = new QboClassRepository($this->pdo);
 
         $client = new InvoiceClient(
             $this->baseUrl,
@@ -167,6 +168,7 @@ class QuickBooksManager
             $invoiceRepo,
             $invoiceItemRepo,
             $customerRepo,
+            $classRepo,
             $client
         );
 
