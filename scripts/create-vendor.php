@@ -7,13 +7,13 @@ use ExcelleInsights\QuickBooks\Facade\QuickBooksManager;
 // Initialize the manager
 $qbo = new QuickBooksManager();
 
-$index = 13;
+$index = 15;
 
 $result = $qbo->createVendor([
     'qbo_company_id' => 1,
 
     // Required
-    'display_name'  => "Test Vendor {$index}",
+    'display_name'  => "Chaun {$index}",
 
     // Optional fields
     'given_name'    => 'Dianne',
