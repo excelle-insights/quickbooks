@@ -3,9 +3,8 @@ require dirname(__DIR__) . '/vendor/autoload.php';
 
 use ExcelleInsights\QuickBooks\Facade\QuickBooksManager;
 
-$id = 202;
 // Initialize the manager
 $qbo = new QuickBooksManager();
-echo json_encode($qbo->getInvoice($id));
+echo json_encode($qbo->getAllClasses());
 
 

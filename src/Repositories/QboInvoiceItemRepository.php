@@ -16,6 +16,7 @@ class QboInvoiceItemRepository
         $stmt = $this->pdo->prepare("
             INSERT INTO qbo_invoice_items (
                 qbo_invoice_id,
+                qbo_class_id,
                 item_id,
                 item_name,
                 description,
@@ -23,11 +24,12 @@ class QboInvoiceItemRepository
                 unit_price,
                 created_at,
                 updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
 
         $stmt->execute([
             $data['qbo_invoice_id'] ?? null,
+            $data['qbo_class_id'] ?? null,
             $data['item_id'] ?? null,
             $data['item_name'] ?? null,
             $data['description'] ?? '',
