@@ -4,8 +4,8 @@ namespace ExcelleInsights\QuickBooks\Facade;
 
 use PDO;
 use ExcelleInsights\QuickBooks\Support\EnvLoader;
-
 use ExcelleInsights\QuickBooks\Auth\Authentication;
+
 use ExcelleInsights\QuickBooks\Client\CustomerClient;
 use ExcelleInsights\QuickBooks\Client\InvoiceClient;
 use ExcelleInsights\QuickBooks\Client\PaymentClient;
@@ -13,6 +13,7 @@ use ExcelleInsights\QuickBooks\Client\AccountClient;
 use ExcelleInsights\QuickBooks\Client\JournalEntryClient;
 use ExcelleInsights\QuickBooks\Client\VendorClient;
 use ExcelleInsights\QuickBooks\Client\ClassClient;
+use ExcelleInsights\QuickBooks\Client\BillClient;
 
 use ExcelleInsights\QuickBooks\Contracts\HttpClientInterface;
 use ExcelleInsights\QuickBooks\Repositories\TokenRepository;
@@ -26,6 +27,8 @@ use ExcelleInsights\QuickBooks\Repositories\QboJournalEntryRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboJournalEntryLineRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboVendorRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboClassRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboBillRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboBillItemRepository;
 
 use ExcelleInsights\QuickBooks\Services\CustomerSyncService;
 use ExcelleInsights\QuickBooks\Services\InvoiceSyncService;
@@ -34,10 +37,12 @@ use ExcelleInsights\QuickBooks\Services\AccountSyncService;
 use ExcelleInsights\QuickBooks\Services\JournalEntrySyncService;
 use ExcelleInsights\QuickBooks\Services\VendorSyncService;
 use ExcelleInsights\QuickBooks\Services\ClassSyncService;
+use ExcelleInsights\QuickBooks\Services\BillSyncService;
 
 use ExcelleInsights\QuickBooks\Validation\JournalEntryValidator;
 use ExcelleInsights\QuickBooks\Validation\VendorValidator;
 use ExcelleInsights\QuickBooks\Validation\ClassValidator;
+use ExcelleInsights\QuickBooks\Validation\BillValidator;
 
 /**
  * Facade for QuickBooks integration
@@ -312,37 +317,5 @@ class QuickBooksManager
         );
 
         return $service->create($data);
-    }
-    public function createClass(array $data): object
-    {
-        ClassValidator::validate($data);
-
-        $data['active'] ??= true;
-
-        $classRepo = new QboClassRepository($this->pdo);
-
-        $client = new ClassClient(
-            $this->baseUrl,
-            $this->companyId,
-            $this->auth,
-            $this->http
-        );
-
-        $service = new ClassSyncService(
-            $classRepo,
-            $client
-        );
-
-        return $service->create($data);
-    }
-    public function getAllClasses()
-    {
-        $client = new ClassClient(
-            $this->baseUrl,
-            $this->companyId,
-            $this->auth,
-            $this->http
-        );
-        return $client->getAll();
     }
 }
