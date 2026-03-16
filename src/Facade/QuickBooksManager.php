@@ -318,4 +318,47 @@ class QuickBooksManager
 
         return $service->create($data);
     }
+
+    public function getAllVendors(): object
+    {
+        $client = new VendorClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getAll();
+    }
+
+    public function createBill(array $data): object
+    {
+        BillValidator::validate($data);
+
+        if (empty($data['qbo_company_id'])) {
+            throw new \InvalidArgumentException('qbo_company_id is required');
+        }
+
+        if (empty($data['items']) || !is_array($data['items'])) {
+            throw new \InvalidArgumentException('Bill items are required');
+        }
+
+        $billRepo = new QboBillRepository($this->pdo);
+        $billItemRepo = new QboBillItemRepository($this->pdo);
+
+        $client = new BillClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new BillSyncService(
+            $billRepo,
+            $billItemRepo,
+            $client
+        );
+
+        return $service->create($data);
+    }
 }
