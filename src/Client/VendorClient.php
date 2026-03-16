@@ -103,4 +103,13 @@ class VendorClient extends BaseClient
             'PostalCode' => $addr['postal_code'] ?? null,
         ], fn ($v) => $v !== null);
     }
+
+    /**
+     * Retrieve all vendors
+     */
+    public function getAll(): object
+    {
+        $query = "SELECT * FROM Vendor";
+        return $this->sendRequest('GET', $this->endpoint('query?query=' . rawurlencode($query)));
+    }
 }

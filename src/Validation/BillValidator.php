@@ -4,6 +4,12 @@ namespace ExcelleInsights\QuickBooks\Validation;
 
 class BillValidator
 {
+    public static function validate(array $data): void
+    {
+        $validator = new self();
+        $validator->validateCreate($data);
+    }
+
     public function validateCreate(array $data): void
     {
         $required = [
