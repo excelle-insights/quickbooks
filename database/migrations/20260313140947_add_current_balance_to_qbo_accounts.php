@@ -22,6 +22,7 @@ final class AddCurrentBalanceToQboAccounts extends AbstractMigration
         if (!$this->hasTable('qbo_accounts')) {
             return;
         }
+        
         $table = $this->table('qbo_accounts');
         if (!$table->hasColumn('current_balance')) {
             $table->addColumn('current_balance', 'decimal', [
