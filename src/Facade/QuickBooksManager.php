@@ -14,6 +14,7 @@ use ExcelleInsights\QuickBooks\Client\JournalEntryClient;
 use ExcelleInsights\QuickBooks\Client\VendorClient;
 use ExcelleInsights\QuickBooks\Client\ClassClient;
 use ExcelleInsights\QuickBooks\Client\BillClient;
+use ExcelleInsights\QuickBooks\Client\BillPaymentClient;
 
 use ExcelleInsights\QuickBooks\Contracts\HttpClientInterface;
 use ExcelleInsights\QuickBooks\Repositories\TokenRepository;
@@ -360,5 +361,194 @@ class QuickBooksManager
         );
 
         return $service->create($data);
+    }
+
+    public function createBillPayment(array $data): object
+    {
+        if (empty($data['qbo_company_id'])) {
+            throw new \InvalidArgumentException('qbo_company_id is required');
+        }
+
+        if (empty($data['vendor_qbo_id'])) {
+            throw new \InvalidArgumentException('vendor_qbo_id is required');
+        }
+
+        if (empty($data['bill_payments']) || !is_array($data['bill_payments'])) {
+            throw new \InvalidArgumentException('Bill payments are required');
+        }
+
+        $client = new BillPaymentClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        // Create the bill payment in QuickBooks
+        $response = $client->create($data);
+
+        // Return a standardized response format
+        if (isset($response->BillPayment)) {
+            return (object)[
+                'status' => 'synced',
+                'qbo_id' => $response->BillPayment->Id,
+                'data' => $response->BillPayment
+            ];
+        } else {
+            return (object)[
+                'status' => 'failed',
+                'error' => 'Invalid response from QuickBooks'
+            ];
+        }
+    }
+
+    /**
+     * -------------------------
+     * Bank Accounts
+     * -------------------------
+     */
+    public function getAllBankAccounts(): object
+    {
+        $client = new AccountClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        // Get all accounts and filter for bank accounts
+        $allAccounts = $client->getAll();
+        
+        $bankAccounts = [];
+        if (isset($allAccounts->QueryResponse->Account)) {
+            foreach ($allAccounts->QueryResponse->Account as $account) {
+                // Filter for bank account types
+                if (in_array($account->AccountType, ['Bank', 'Other Current Asset']) && 
+                    in_array($account->AccountSubType, ['Checking', 'Savings', 'MoneyMarket', 'CashOnHand'])) {
+                    $bankAccounts[] = $account;
+                }
+            }
+        }
+
+        return (object)[
+            'QueryResponse' => (object)[
+                'Account' => $bankAccounts
+            ]
+        ];
+    }
+
+    public function syncBankAccountsToLocal(): array
+    {
+        try {
+            // Get all bank accounts from QuickBooks
+            $qboBankAccounts = $this->getAllBankAccounts();
+            
+            $results = [];
+            $success_count = 0;
+            $error_count = 0;
+
+            if (isset($qboBankAccounts->QueryResponse->Account)) {
+                foreach ($qboBankAccounts->QueryResponse->Account as $account) {
+                    try {
+                        // Check if this bank account already exists in our local table
+                        $stmt = $this->pdo->prepare("
+                            SELECT id FROM qbo_bank 
+                            WHERE qbo_company_id = ? AND qbo_account_id = ?
+                        ");
+                        $stmt->execute([1, $account->Id]); // Assuming company ID 1
+                        
+                        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+                        
+                        if ($existing) {
+                            // Update existing record
+                            $updateStmt = $this->pdo->prepare("
+                                UPDATE qbo_bank SET
+                                    name = ?,
+                                    account_type = ?,
+                                    account_sub_type = ?,
+                                    current_balance = ?,
+                                    sync_token = ?,
+                                    status = 'synced',
+                                    error_message = NULL,
+                                    updated_at = CURRENT_TIMESTAMP
+                                WHERE qbo_company_id = ? AND qbo_account_id = ?
+                            ");
+                            
+                            $updateStmt->execute([
+                                $account->Name,
+                                $account->AccountType ?? null,
+                                $account->AccountSubType ?? null,
+                                $account->CurrentBalance ?? 0.00,
+                                $account->SyncToken ?? null,
+                                1, // company_id
+                                $account->Id
+                            ]);
+                            
+                            $results[] = [
+                                'qbo_account_id' => $account->Id,
+                                'name' => $account->Name,
+                                'action' => 'updated',
+                                'success' => true
+                            ];
+                        } else {
+                            // Insert new record
+                            $insertStmt = $this->pdo->prepare("
+                                INSERT INTO qbo_bank (
+                                    qbo_company_id, qbo_account_id, name, account_type, 
+                                    account_sub_type, current_balance, sync_token, status
+                                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'synced')
+                            ");
+                            
+                            $insertStmt->execute([
+                                1, // company_id
+                                $account->Id,
+                                $account->Name,
+                                $account->AccountType ?? null,
+                                $account->AccountSubType ?? null,
+                                $account->CurrentBalance ?? 0.00,
+                                $account->SyncToken ?? null
+                            ]);
+                            
+                            $results[] = [
+                                'qbo_account_id' => $account->Id,
+                                'name' => $account->Name,
+                                'action' => 'created',
+                                'success' => true
+                            ];
+                        }
+                        
+                        $success_count++;
+                        
+                    } catch (\Exception $e) {
+                        $results[] = [
+                            'qbo_account_id' => $account->Id ?? 'unknown',
+                            'name' => $account->Name ?? 'unknown',
+                            'action' => 'failed',
+                            'success' => false,
+                            'error' => $e->getMessage()
+                        ];
+                        $error_count++;
+                    }
+                }
+            }
+
+            return [
+                'success' => true,
+                'message' => "Synced bank accounts. Success: $success_count, Errors: $error_count",
+                'results' => $results,
+                'summary' => [
+                    'total' => count($results),
+                    'success' => $success_count,
+                    'errors' => $error_count
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Bank account sync failed: ' . $e->getMessage(),
+                'results' => []
+            ];
+        }
     }
 }
