@@ -13,6 +13,9 @@ class QboVendorRepository
      */
     public function create(array $data): int
     {
+        // Generate vendor hash for duplicate detection
+        $vendorHash = $this->generateVendorHash($data);
+        
         $stmt = $this->pdo->prepare("
             INSERT INTO qbo_vendors (
                 qbo_company_id,
@@ -30,11 +33,12 @@ class QboVendorRepository
                 tax_identifier,
                 account_number,
                 bill_addr_json,
+                vendor_hash,
                 status,
                 created_at,
                 updated_at
             ) VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW()
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NOW(), NOW()
             )
         ");
 
@@ -56,6 +60,7 @@ class QboVendorRepository
             isset($data['bill_addr'])
                 ? json_encode($data['bill_addr'])
                 : null,
+            $vendorHash,
         ]);
 
         return (int) $this->pdo->lastInsertId();
@@ -144,5 +149,66 @@ class QboVendorRepository
         $stmt->execute([':maxRetries' => $maxRetries]);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Find vendor by display name, tax ID, or email
+     */
+    public function findByUniqueFields(string $displayName = null, string $taxId = null, string $email = null): ?object
+    {
+        $conditions = [];
+        $params = [];
+        
+        if ($displayName) {
+            $conditions[] = "display_name = ?";
+            $params[] = $displayName;
+        }
+        
+        if ($taxId) {
+            $conditions[] = "tax_identifier = ?";
+            $params[] = $taxId;
+        }
+        
+        if ($email) {
+            $conditions[] = "email = ?";
+            $params[] = $email;
+        }
+        
+        if (empty($conditions)) {
+            return null;
+        }
+        
+        $sql = "SELECT * FROM qbo_vendors WHERE (" . implode(' OR ', $conditions) . ") AND status = 'synced'";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+
+        return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
+    }
+
+    /**
+     * Find vendor by hash
+     */
+    public function findByHash(string $hash): ?object
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT * FROM qbo_vendors WHERE vendor_hash = ? AND status = 'synced'"
+        );
+        $stmt->execute([$hash]);
+
+        return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
+    }
+
+    /**
+     * Generate vendor hash for duplicate detection
+     */
+    private function generateVendorHash(array $data): string
+    {
+        $identifiers = [
+            $data['display_name'] ?? '',
+            $data['tax_identifier'] ?? '',
+            $data['email'] ?? '',
+        ];
+        
+        return md5(implode('|', array_filter($identifiers)));
     }
 }
