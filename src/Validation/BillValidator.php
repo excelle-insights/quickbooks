@@ -14,7 +14,7 @@ class BillValidator
     {
         $required = [
             'qbo_company_id',
-            'vendor_qbo_id',
+            'qbo_vendor_id',
             'items'
         ];
 
