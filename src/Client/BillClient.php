@@ -66,16 +66,37 @@ class BillClient extends BaseClient
         $lines = [];
 
         foreach ($items as $item) {
-            $lines[] = array_filter([
-                'DetailType' => 'AccountBasedExpenseLineDetail',
-                'Amount'     => isset($item['amount']) ? (float) $item['amount'] : 0,
-                'Description'=> $item['description'] ?? null,
-                'AccountBasedExpenseLineDetail' => array_filter([
-                    'AccountRef' => [
-                        'value' => $item['account_qbo_id']
-                    ]
-                ])
-            ], fn($v) => $v !== null);
+            $detail = [
+                'AccountRef' => [
+                    'value' => $item['account_qbo_id']
+                ]
+            ];
+
+            // Include ClassRef if resolved
+            if (!empty($item['class_qbo_id'])) {
+                $detail['ClassRef'] = [
+                    'value' => $item['class_qbo_id']
+                ];
+            }
+
+            // Include TaxCodeRef if resolved (e.g. VAT, EXEMPT, ZERO)
+            if (!empty($item['tax_code_qbo_id'])) {
+                $detail['TaxCodeRef'] = [
+                    'value' => $item['tax_code_qbo_id']
+                ];
+            }
+
+            $line = [
+                'DetailType'                    => 'AccountBasedExpenseLineDetail',
+                'Amount'                        => isset($item['amount']) ? (float) $item['amount'] : 0,
+                'AccountBasedExpenseLineDetail' => $detail,
+            ];
+
+            if (!empty($item['description'])) {
+                $line['Description'] = $item['description'];
+            }
+
+            $lines[] = $line;
         }
 
         return $lines;

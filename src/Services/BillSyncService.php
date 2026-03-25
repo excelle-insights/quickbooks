@@ -4,6 +4,9 @@ namespace ExcelleInsights\QuickBooks\Services;
 
 use ExcelleInsights\QuickBooks\Repositories\QboBillRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboBillItemRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboVendorRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboClassRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboTaxCodeRepository;
 use ExcelleInsights\QuickBooks\Client\BillClient;
 
 class BillSyncService
@@ -11,6 +14,9 @@ class BillSyncService
     public function __construct(
         private QboBillRepository $bills,
         private QboBillItemRepository $billItems,
+        private QboVendorRepository $vendorRepo,
+        private QboClassRepository $classRepo,
+        private QboTaxCodeRepository $taxCodeRepo,
         private BillClient $qbo
     ) {}
 
@@ -20,21 +26,87 @@ class BillSyncService
      * @param array $data
      *   Required keys:
      *   - qbo_company_id
-     *   - vendor_qbo_id
-     *   - items (array of bill items)
+     *   - qbo_vendor_id  (local vendor ID — vendor must be synced first)
+     *   - items (array of bill line items)
+     *     Each item:
+     *       - account_qbo_id  (QBO expense account ID)
+     *       - amount
+     *       - description     (optional)
+     *       - qbo_class_id    (optional, local class ID — class must be synced first)
+     *       - tax_code_id     (optional, local tax code ID from qbo_tax_codes)
      *   Optional keys:
      *   - txn_date
      *   - currency
      *
-     * @return object Status of sync, local ID, QBO ID (if synced), or error
+     * @return object status, local_id, qbo_id (if synced), or error
      */
     public function create(array $data): object
     {
-        // 1️⃣ Create locally
+        // 1. Create locally
         $localId = $this->bills->create($data);
 
+        // 2. Resolve vendor from local DB
+        $vendor = $this->vendorRepo->find((int) $data['qbo_vendor_id']);
+
+        if (!$vendor || !$vendor->qbo_id) {
+            return (object)[
+                'status'   => 'queued',
+                'local_id' => $localId,
+                'reason'   => 'Vendor not yet synced to QBO',
+            ];
+        }
+
+        $data['vendor_qbo_id'] = $vendor->qbo_id;
+
+        // 3. Resolve class and tax code on each item
+        $items = [];
+        foreach ($data['items'] ?? [] as $item) {
+
+            // Resolve class
+            if (!empty($item['qbo_class_id'])) {
+                $class = $this->classRepo->find((int) $item['qbo_class_id']);
+
+                if (!$class || !$class->qbo_id) {
+                    $this->bills->markFailed(
+                        $localId,
+                        "Class ID {$item['qbo_class_id']} must be synced before using it in a bill."
+                    );
+                    return (object)[
+                        'status'   => 'failed',
+                        'local_id' => $localId,
+                        'error'    => "Class ID {$item['qbo_class_id']} must be synced before using it in a bill.",
+                    ];
+                }
+
+                $item['class_qbo_id'] = $class->qbo_id;
+            }
+
+            // Resolve tax code
+            if (!empty($item['tax_code_id'])) {
+                $taxCode = $this->taxCodeRepo->find((int) $item['tax_code_id']);
+
+                if (!$taxCode || !$taxCode->qbo_id) {
+                    $this->bills->markFailed(
+                        $localId,
+                        "Tax code ID {$item['tax_code_id']} not found. Run syncTaxCodes() first."
+                    );
+                    return (object)[
+                        'status'   => 'failed',
+                        'local_id' => $localId,
+                        'error'    => "Tax code ID {$item['tax_code_id']} not found. Run syncTaxCodes() first.",
+                    ];
+                }
+
+                $item['tax_code_qbo_id'] = $taxCode->qbo_id;
+            }
+
+            $items[] = $item;
+        }
+
+        $data['items'] = $items;
+
         try {
-            // 2️⃣ Sync to QBO
+            // 4. Sync to QBO
             $response = $this->qbo->create($data);
 
             if (!isset($response->Bill)) {
@@ -43,43 +115,39 @@ class BillSyncService
 
             $qboBill = $response->Bill;
 
-            // 3️⃣ Link local ↔ QBO
+            // 5. Link local ↔ QBO
             $this->bills->markSynced(
                 $localId,
                 $qboBill->Id,
                 $qboBill->SyncToken
             );
 
-            // 4️⃣ Save line items locally
-            if (!empty($data['items'])) {
-                foreach ($data['items'] as $item) {
-                    $this->billItems->create([
-                        'bill_id'       => $localId,
-                        'account_qbo_id'=> $item['account_qbo_id'],
-                        'amount'        => $item['amount'],
-                        'description'   => $item['description'] ?? null
-                    ]);
-                }
+            // 6. Save line items locally
+            foreach ($data['items'] as $item) {
+                $this->billItems->create([
+                    'bill_id'        => $localId,
+                    'qbo_class_id'   => $item['qbo_class_id'] ?? null,
+                    'tax_code_id'    => $item['tax_code_id'] ?? null,
+                    'account_qbo_id' => $item['account_qbo_id'],
+                    'amount'         => $item['amount'],
+                    'description'    => $item['description'] ?? null,
+                ]);
             }
 
             return (object)[
                 'status'   => 'synced',
                 'local_id' => $localId,
                 'qbo_id'   => $qboBill->Id,
-                'data'     => $qboBill
+                'data'     => $qboBill,
             ];
 
         } catch (\Throwable $e) {
-            // 5️⃣ Handle errors and mark for retry
-            $this->bills->markFailed(
-                $localId,
-                $e->getMessage()
-            );
+            $this->bills->markFailed($localId, $e->getMessage());
 
             return (object)[
                 'status'   => 'pending',
                 'local_id' => $localId,
-                'error'    => $e->getMessage()
+                'error'    => $e->getMessage(),
             ];
         }
     }

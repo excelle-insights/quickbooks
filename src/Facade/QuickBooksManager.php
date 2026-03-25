@@ -15,6 +15,7 @@ use ExcelleInsights\QuickBooks\Client\VendorClient;
 use ExcelleInsights\QuickBooks\Client\ClassClient;
 use ExcelleInsights\QuickBooks\Client\BillClient;
 use ExcelleInsights\QuickBooks\Client\BillPaymentClient;
+use ExcelleInsights\QuickBooks\Client\TaxCodeClient;
 
 use ExcelleInsights\QuickBooks\Contracts\HttpClientInterface;
 use ExcelleInsights\QuickBooks\Repositories\TokenRepository;
@@ -30,6 +31,7 @@ use ExcelleInsights\QuickBooks\Repositories\QboVendorRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboClassRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboBillRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboBillItemRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboTaxCodeRepository;
 
 use ExcelleInsights\QuickBooks\Services\CustomerSyncService;
 use ExcelleInsights\QuickBooks\Services\InvoiceSyncService;
@@ -39,6 +41,7 @@ use ExcelleInsights\QuickBooks\Services\JournalEntrySyncService;
 use ExcelleInsights\QuickBooks\Services\VendorSyncService;
 use ExcelleInsights\QuickBooks\Services\ClassSyncService;
 use ExcelleInsights\QuickBooks\Services\BillSyncService;
+use ExcelleInsights\QuickBooks\Services\TaxCodeSyncService;
 
 use ExcelleInsights\QuickBooks\Validation\JournalEntryValidator;
 use ExcelleInsights\QuickBooks\Validation\VendorValidator;
@@ -344,8 +347,11 @@ class QuickBooksManager
             throw new \InvalidArgumentException('Bill items are required');
         }
 
-        $billRepo = new QboBillRepository($this->pdo);
+        $billRepo     = new QboBillRepository($this->pdo);
         $billItemRepo = new QboBillItemRepository($this->pdo);
+        $vendorRepo   = new QboVendorRepository($this->pdo);
+        $classRepo    = new QboClassRepository($this->pdo);
+        $taxCodeRepo  = new QboTaxCodeRepository($this->pdo);
 
         $client = new BillClient(
             $this->baseUrl,
@@ -357,10 +363,34 @@ class QuickBooksManager
         $service = new BillSyncService(
             $billRepo,
             $billItemRepo,
+            $vendorRepo,
+            $classRepo,
+            $taxCodeRepo,
             $client
         );
 
         return $service->create($data);
+    }
+
+    /**
+     * Pull all active tax codes from QBO and store locally.
+     * Run this once during setup, or periodically to stay in sync.
+     * Tax codes (VAT, EXEMPT, ZERO-RATED etc.) are managed in QBO — not created here.
+     */
+    public function syncTaxCodes(int $qboCompanyId): array
+    {
+        $taxCodeRepo = new QboTaxCodeRepository($this->pdo);
+
+        $client = new TaxCodeClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new TaxCodeSyncService($taxCodeRepo, $client);
+
+        return $service->sync($qboCompanyId);
     }
 
     public function createBillPayment(array $data): object
