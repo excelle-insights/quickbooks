@@ -100,6 +100,31 @@ class BillSyncService
                 $item['tax_code_qbo_id'] = $taxCode->qbo_id;
             }
 
+            // Compute net_amount and tax_amount for QBO payload.
+            // QBO always wants the NET (pre-tax) amount on the line.
+            // tax_type and tax_rate come from the item (set by bulk_sync_bills).
+            $grossAmount = (float) ($item['amount'] ?? 0);
+            $taxType     = $item['tax_type'] ?? 'exclusive';
+            $taxRate     = (float) ($item['tax_rate'] ?? 0);
+
+            if (!empty($item['tax_code_qbo_id']) && $taxRate > 0) {
+                if ($taxType === 'inclusive') {
+                    // Gross includes tax — extract net
+                    $netAmount = $grossAmount / (1 + $taxRate / 100);
+                    $taxAmount = $grossAmount - $netAmount;
+                } else {
+                    // Exclusive — net = gross, tax is on top
+                    $netAmount = $grossAmount;
+                    $taxAmount = $grossAmount * ($taxRate / 100);
+                }
+            } else {
+                $netAmount = $grossAmount;
+                $taxAmount = 0.0;
+            }
+
+            $item['net_amount'] = round($netAmount, 2);
+            $item['tax_amount'] = round($taxAmount, 2);
+
             $items[] = $item;
         }
 
@@ -140,7 +165,6 @@ class BillSyncService
                 'qbo_id'   => $qboBill->Id,
                 'data'     => $qboBill,
             ];
-
         } catch (\Throwable $e) {
             $this->bills->markFailed($localId, $e->getMessage());
 
