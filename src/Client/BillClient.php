@@ -68,6 +68,15 @@ class BillClient extends BaseClient
     }
 
     /**
+     * Retrieve all Bills from QuickBooks
+     */
+    public function getAll(int $maxResults = 1000, int $startPosition = 1): object
+    {
+        $query = "SELECT * FROM Bill STARTPOSITION $startPosition MAXRESULTS $maxResults";
+        return $this->sendRequest('GET', $this->endpoint('query?query=' . rawurlencode($query)));
+    }
+
+    /**
      * Void or delete a Bill
      */
     public function void(string $qboBillId, string $syncToken): object

@@ -393,6 +393,22 @@ class QuickBooksManager
         return $service->sync($qboCompanyId);
     }
 
+    /**
+     * Pull all Bills from QuickBooks Online.
+     * Returns the raw QBO QueryResponse object.
+     */
+    public function getAllBills(int $maxResults = 1000, int $startPosition = 1): object
+    {
+        $client = new BillClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getAll($maxResults, $startPosition);
+    }
+
     public function createBillPayment(array $data): object
     {
         if (empty($data['qbo_company_id'])) {
@@ -448,13 +464,15 @@ class QuickBooksManager
 
         // Get all accounts and filter for bank accounts
         $allAccounts = $client->getAll();
-        
+
         $bankAccounts = [];
         if (isset($allAccounts->QueryResponse->Account)) {
             foreach ($allAccounts->QueryResponse->Account as $account) {
                 // Filter for bank account types
-                if (in_array($account->AccountType, ['Bank', 'Other Current Asset']) && 
-                    in_array($account->AccountSubType, ['Checking', 'Savings', 'MoneyMarket', 'CashOnHand'])) {
+                if (
+                    in_array($account->AccountType, ['Bank', 'Other Current Asset']) &&
+                    in_array($account->AccountSubType, ['Checking', 'Savings', 'MoneyMarket', 'CashOnHand'])
+                ) {
                     $bankAccounts[] = $account;
                 }
             }
@@ -472,7 +490,7 @@ class QuickBooksManager
         try {
             // Get all bank accounts from QuickBooks
             $qboBankAccounts = $this->getAllBankAccounts();
-            
+
             $results = [];
             $success_count = 0;
             $error_count = 0;
@@ -486,9 +504,9 @@ class QuickBooksManager
                             WHERE qbo_company_id = ? AND qbo_account_id = ?
                         ");
                         $stmt->execute([1, $account->Id]); // Assuming company ID 1
-                        
+
                         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
-                        
+
                         if ($existing) {
                             // Update existing record
                             $updateStmt = $this->pdo->prepare("
@@ -503,7 +521,7 @@ class QuickBooksManager
                                     updated_at = CURRENT_TIMESTAMP
                                 WHERE qbo_company_id = ? AND qbo_account_id = ?
                             ");
-                            
+
                             $updateStmt->execute([
                                 $account->Name,
                                 $account->AccountType ?? null,
@@ -513,7 +531,7 @@ class QuickBooksManager
                                 1, // company_id
                                 $account->Id
                             ]);
-                            
+
                             $results[] = [
                                 'qbo_account_id' => $account->Id,
                                 'name' => $account->Name,
@@ -528,7 +546,7 @@ class QuickBooksManager
                                     account_sub_type, current_balance, sync_token, status
                                 ) VALUES (?, ?, ?, ?, ?, ?, ?, 'synced')
                             ");
-                            
+
                             $insertStmt->execute([
                                 1, // company_id
                                 $account->Id,
@@ -538,7 +556,7 @@ class QuickBooksManager
                                 $account->CurrentBalance ?? 0.00,
                                 $account->SyncToken ?? null
                             ]);
-                            
+
                             $results[] = [
                                 'qbo_account_id' => $account->Id,
                                 'name' => $account->Name,
@@ -546,9 +564,8 @@ class QuickBooksManager
                                 'success' => true
                             ];
                         }
-                        
+
                         $success_count++;
-                        
                     } catch (\Exception $e) {
                         $results[] = [
                             'qbo_account_id' => $account->Id ?? 'unknown',
@@ -572,7 +589,6 @@ class QuickBooksManager
                     'errors' => $error_count
                 ]
             ];
-
         } catch (\Exception $e) {
             return [
                 'success' => false,
