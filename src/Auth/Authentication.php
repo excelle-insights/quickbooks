@@ -34,7 +34,7 @@ class Authentication
 
         // Add 3500 seconds buffer to ensure we refresh before actual expiration
         $refreshBuffer = 3500;
-        $deadline = $updatedAt + 3600 - $refreshBuffer;
+        $deadline = $updatedAt + $refreshBuffer;
         $currentTime = time();
 
         $token_age = time() - $updatedAt;
