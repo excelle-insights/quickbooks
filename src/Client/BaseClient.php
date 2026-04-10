@@ -83,7 +83,7 @@ abstract class BaseClient
     /**
      * Build standard QuickBooks Online API endpoint with minorversion
      */
-    protected function endpoint(string $path, int $minorVersion = 69): string
+    protected function endpoint(string $path, int $minorVersion = 75): string
     {
         // Check if path has 'query'
         if (strpos($path, 'query') !== false) {

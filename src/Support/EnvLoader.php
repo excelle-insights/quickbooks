@@ -9,6 +9,8 @@ final class EnvLoader
 
     public static function load(?string $rootPath = null): void
     {
+        date_default_timezone_set('Africa/Nairobi');
+        
         if (self::$loaded) {
             return;
         }

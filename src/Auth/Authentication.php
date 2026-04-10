@@ -32,13 +32,21 @@ class Authentication
         $token = json_decode($record->access_token, true);
         $updatedAt = strtotime($record->updated_at);
 
+        // Add 3500 seconds buffer to ensure we refresh before actual expiration
+        $refreshBuffer = 3500;
+        $deadline = $updatedAt + 3600 - $refreshBuffer;
+        $currentTime = time();
+
         $token_age = time() - $updatedAt;
         // Token still valid
-        if ($token_age  < 3500) {
-            error_log("Access token not expired. Age is $token_age. Last updated at ".$record->updated_at);
+        $formatDeadline = date('Y-m-d H:i:s', $deadline);
+        $formatCurrentTime = date('Y-m-d H:i:s', $currentTime);
+
+        if ($currentTime < $deadline) {
+            error_log("Access token not expired. Age is $token_age. Current time is $formatCurrentTime, deadline is $formatDeadline");
             return $token['access_token'];
         } else {
-            error_log("Access token expired. Age is $token_age. Last updated at ".$record->updated_at);
+            error_log("Access token expired. Age is $token_age.  Current time is $formatCurrentTime, deadline is $formatDeadline");
         }
 
         // Refresh
