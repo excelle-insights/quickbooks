@@ -4,11 +4,17 @@ namespace ExcelleInsights\QuickBooks\Validation;
 
 class BillValidator
 {
+    public static function validate(array $data): void
+    {
+        $validator = new self();
+        $validator->validateCreate($data);
+    }
+
     public function validateCreate(array $data): void
     {
         $required = [
             'qbo_company_id',
-            'vendor_qbo_id',
+            'qbo_vendor_id',
             'items'
         ];
 

@@ -1,5 +1,12 @@
 <?php
 
+// Load composer autoloader
+require_once __DIR__ . '/vendor/autoload.php';
+
+// Load environment variables
+use ExcelleInsights\QuickBooks\Support\EnvLoader;
+EnvLoader::load(__DIR__);
+
 return
 [
     'paths' => [
@@ -11,29 +18,29 @@ return
         'default_environment' => 'development',
         'production' => [
             'adapter' => 'mysql',
-            'host' => 'localhost',
-            'name' => 'production_db',
-            'user' => 'root',
-            'pass' => '',
-            'port' => '3306',
+            'host' => $_ENV['DB_HOST'] ?? 'localhost',
+            'name' => $_ENV['DB_NAME'] ?? 'production_db',
+            'user' => $_ENV['DB_USER'] ?? 'root',
+            'pass' => $_ENV['DB_PASSWORD'] ?? '',
+            'port' => $_ENV['DB_PORT'] ?? '3306',
             'charset' => 'utf8',
         ],
         'development' => [
             'adapter' => 'mysql',
-            'host' => 'localhost',
-            'name' => 'development_db',
-            'user' => 'root',
-            'pass' => '',
-            'port' => '3306',
+            'host' => $_ENV['DB_HOST'] ?? 'localhost',
+            'name' => $_ENV['DB_NAME'] ?? 'development_db',
+            'user' => $_ENV['DB_USER'] ?? 'root',
+            'pass' => $_ENV['DB_PASSWORD'] ?? '',
+            'port' => $_ENV['DB_PORT'] ?? '3306',
             'charset' => 'utf8',
         ],
         'testing' => [
             'adapter' => 'mysql',
-            'host' => 'localhost',
-            'name' => 'testing_db',
-            'user' => 'root',
-            'pass' => '',
-            'port' => '3306',
+            'host' => $_ENV['DB_HOST'] ?? 'localhost',
+            'name' => $_ENV['DB_NAME'] ?? 'testing_db',
+            'user' => $_ENV['DB_USER'] ?? 'root',
+            'pass' => $_ENV['DB_PASSWORD'] ?? '',
+            'port' => $_ENV['DB_PORT'] ?? '3306',
             'charset' => 'utf8',
         ]
     ],
