@@ -25,16 +25,21 @@ class TaxCodeSyncService
     public function sync(int $qboCompanyId): array
     {
         $response = $this->qbo->getAll();
-
         $taxCodeList = $response->QueryResponse->TaxCode ?? [];
 
         if (empty($taxCodeList)) {
             return ['synced' => 0, 'items' => []];
         }
 
+        // Build a TaxRate ID → RateValue map so we can resolve rates per TaxCode
+        $rateMap = $this->buildTaxRateMap();
+
         $synced = [];
 
         foreach ($taxCodeList as $tc) {
+            // Resolve the effective rate from SalesTaxRateList (purchase side falls back to this too)
+            $rate = $this->resolveRate($tc, $rateMap);
+
             // 1. Upsert into qbo_tax_codes
             $localId = $this->taxCodes->upsert([
                 'qbo_company_id' => $qboCompanyId,
@@ -46,13 +51,14 @@ class TaxCodeSyncService
                 'sync_token'     => $tc->SyncToken ?? null,
             ]);
 
-            // 2. Merge into local tax_types and stamp local_tax_id back
-            $localTaxId = $this->mergeIntoTaxTypes($localId, $tc);
+            // 2. Merge into local tax_types with the resolved rate
+            $localTaxId = $this->mergeIntoTaxTypes($localId, $tc, $rate);
 
             $synced[] = [
                 'local_id'     => $localId,
                 'qbo_id'       => $tc->Id,
                 'name'         => $tc->Name,
+                'rate'         => $rate,
                 'local_tax_id' => $localTaxId,
             ];
         }
@@ -61,6 +67,51 @@ class TaxCodeSyncService
             'synced' => count($synced),
             'items'  => $synced,
         ];
+    }
+
+    /**
+     * Fetch all TaxRate entities and return a map of [ qboTaxRateId => RateValue ]
+     */
+    private function buildTaxRateMap(): array
+    {
+        $map = [];
+        try {
+            $response = $this->qbo->getAllTaxRates();
+            $rates = $response->QueryResponse->TaxRate ?? [];
+            foreach ($rates as $tr) {
+                $map[(string) $tr->Id] = (float) ($tr->RateValue ?? 0);
+            }
+        } catch (\Throwable $e) {
+            error_log('TaxCodeSyncService: could not fetch TaxRates — ' . $e->getMessage());
+        }
+        return $map;
+    }
+
+    /**
+     * Resolve the effective rate for a TaxCode by summing its SalesTaxRateList entries.
+     * Falls back to PurchaseTaxRateList if sales list is empty.
+     */
+    private function resolveRate(object $tc, array $rateMap): float
+    {
+        $total = 0.0;
+
+        $lists = [
+            $tc->SalesTaxRateList->TaxRateDetail   ?? [],
+            $tc->PurchaseTaxRateList->TaxRateDetail ?? [],
+        ];
+
+        foreach ($lists as $details) {
+            if (empty($details)) continue;
+            foreach ($details as $detail) {
+                $rateId = (string) ($detail->TaxRateRef->value ?? '');
+                if ($rateId && isset($rateMap[$rateId])) {
+                    $total += $rateMap[$rateId];
+                }
+            }
+            if ($total > 0) break; // use first non-empty list
+        }
+
+        return round($total, 2);
     }
 
     /**
@@ -73,7 +124,7 @@ class TaxCodeSyncService
      *
      * @return int  The tax_types.id that was matched or created
      */
-    private function mergeIntoTaxTypes(int $qboTaxCodeLocalId, object $tc): int
+    private function mergeIntoTaxTypes(int $qboTaxCodeLocalId, object $tc, float $rate = 0.00): int
     {
         $pdo  = $this->taxCodes->getPdo();
         $name = trim($tc->Name);
@@ -101,10 +152,13 @@ class TaxCodeSyncService
 
         if ($existing) {
             $localTaxId = (int) $existing->id;
+            // Update the rate if we now have a real value and the stored one is still 0
+            if ($rate > 0) {
+                $pdo->prepare("UPDATE tax_types SET tax_rate = ? WHERE id = ? AND tax_rate = 0")
+                    ->execute([$rate, $localTaxId]);
+            }
         } else {
             // Priority 3: insert new tax_types row
-            // Determine tax_type: non-taxable codes map to 'normal' (exempt/zero-rated),
-            // taxable ones are also 'normal' — withholding is a CRM-only concept.
             $taxType = 'normal';
 
             $stmt = $pdo->prepare("
@@ -114,7 +168,7 @@ class TaxCodeSyncService
             $stmt->execute([
                 $name,
                 $taxType,
-                0.00, // QBO TaxCode doesn't carry a flat rate; rate lives on TaxRate sub-entity
+                $rate,
                 $tc->Description ?? 'Imported from QuickBooks',
             ]);
             $localTaxId = (int) $pdo->lastInsertId();
