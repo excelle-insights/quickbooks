@@ -98,6 +98,12 @@ class BillSyncService
                 }
 
                 $item['tax_code_qbo_id'] = $taxCode->qbo_id;
+
+                // If caller didn't pass a rate (or passed 0), pull it from the linked
+                // tax_types row so QBO receives the correct tax calculation
+                if (empty($item['tax_rate']) || (float)$item['tax_rate'] === 0.0) {
+                    $item['tax_rate'] = $this->resolveRateFromTaxCode($taxCode);
+                }
             }
 
             // Compute net_amount and tax_amount for QBO payload.
@@ -173,6 +179,29 @@ class BillSyncService
                 'local_id' => $localId,
                 'error'    => $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Resolve the tax rate for a qbo_tax_codes row.
+     * Looks up the linked tax_types row via local_tax_id and returns its tax_rate.
+     * Falls back to 0 if no link or no rate found.
+     */
+    private function resolveRateFromTaxCode(object $taxCode): float
+    {
+        if (empty($taxCode->local_tax_id)) {
+            return 0.0;
+        }
+
+        try {
+            $pdo  = $this->taxCodeRepo->getPdo();
+            $stmt = $pdo->prepare("SELECT tax_rate FROM tax_types WHERE id = ? LIMIT 1");
+            $stmt->execute([(int) $taxCode->local_tax_id]);
+            $row = $stmt->fetch(\PDO::FETCH_OBJ);
+            return $row ? (float) $row->tax_rate : 0.0;
+        } catch (\Throwable $e) {
+            error_log('BillSyncService: could not resolve tax rate — ' . $e->getMessage());
+            return 0.0;
         }
     }
 }
