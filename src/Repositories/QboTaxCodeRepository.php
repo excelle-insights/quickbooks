@@ -8,6 +8,10 @@ class QboTaxCodeRepository
 {
     public function __construct(private PDO $pdo) {}
 
+    public function getPdo(): PDO
+    {
+        return $this->pdo;
+    }
     /**
      * Upsert a tax code synced from QBO.
      * QBO is the source of truth — we never create tax codes locally.
