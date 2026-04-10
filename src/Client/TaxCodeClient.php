@@ -13,4 +13,14 @@ class TaxCodeClient extends BaseClient
         $query = 'SELECT * FROM TaxCode WHERE Active = true MAXRESULTS 200';
         return $this->sendRequest('GET', $this->endpoint('query?query=' . rawurlencode($query)));
     }
+
+    /**
+     * Fetch all TaxRate entities — these carry the actual RateValue (%).
+     * TaxCode references TaxRate via SalesTaxRateList.TaxRateDetail[].TaxRateRef.value
+     */
+    public function getAllTaxRates(): object
+    {
+        $query = 'SELECT * FROM TaxRate MAXRESULTS 200';
+        return $this->sendRequest('GET', $this->endpoint('query?query=' . rawurlencode($query)));
+    }
 }
