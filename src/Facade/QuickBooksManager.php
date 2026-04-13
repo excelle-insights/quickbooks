@@ -146,6 +146,17 @@ class QuickBooksManager
         );
         return $client->getById($id);
     }
+
+    public function getCustomersWithBalances()
+    {
+        $client = new CustomerClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+        return $client->getWithOutstandingBalances();
+    }
     /**
      * -------------------------
      * Invoices

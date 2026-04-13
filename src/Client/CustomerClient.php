@@ -70,4 +70,31 @@ class CustomerClient extends BaseClient
 
         return $this->sendRequest('POST', $this->endpoint('customer'), $payload);
     }
+
+    /**
+     * Get a single customer's balance by QuickBooks ID
+     */
+    public function getBalance(string $id): object
+    {
+        $query = "SELECT Id, DisplayName, Balance, BalanceWithJobs FROM Customer WHERE Id = '" . $id . "'";
+        return $this->sendRequest('GET', $this->endpoint("query?query=" . rawurlencode($query)));
+    }
+
+    /**
+     * Get all customers with their balances
+     */
+    public function getAllWithBalances(int $startPosition = 1, int $maxResults = 1000): object
+    {
+        $query = "SELECT Id, DisplayName, Balance, BalanceWithJobs FROM Customer STARTPOSITION " . $startPosition . " MAXRESULTS " . $maxResults;
+        return $this->sendRequest('GET', $this->endpoint("query?query=" . rawurlencode($query)));
+    }
+
+    /**
+     * Get customers with outstanding balances (balance > 0)
+     */
+    public function getWithOutstandingBalances(int $startPosition = 1, int $maxResults = 1000): object
+    {
+        $query = "SELECT Id, GivenName, MiddleName, FamilyName, DisplayName, PrimaryPhone, PrimaryEmailAddr, Balance, BalanceWithJobs FROM Customer WHERE Balance > '0' STARTPOSITION " . $startPosition . " MAXRESULTS " . $maxResults;
+        return $this->sendRequest('GET', $this->endpoint("query?query=" . rawurlencode($query)));
+    }
 }
