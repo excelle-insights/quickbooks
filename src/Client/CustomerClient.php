@@ -13,11 +13,12 @@ class CustomerClient extends BaseClient
             "FullyQualifiedName" => $data['name'] ?? null,
             "PrimaryEmailAddr"   => ["Address" => $data['email'] ?? null],
             "DisplayName"        => $data['name'] ?? null,
+            "GivenName"          => $data['first_name'] ?? null,
+            "MiddleName"         => $data['middle_name'] ?? null,
+            "FamilyName"         => $data['last_name'] ?? null,
             "Suffix"             => $data['suffix'] ?? null,
             "Title"              => $data['title'] ?? null,
-            "MiddleName"         => $data['middle_name'] ?? null,
             "Notes"              => $data['notes'] ?? null,
-            "FamilyName"         => $data['sur_name'] ?? null,
             "PrimaryPhone"       => ["FreeFormNumber" => $data['phone'] ?? null],
             "CompanyName"        => $data['company_name'] ?? null,
             "BillAddr"           => array_filter([
@@ -27,7 +28,8 @@ class CustomerClient extends BaseClient
                 "Line1"                  => $data['line'] ?? null,
                 "Country"                => $data['country'] ?? null
             ], fn($v) => $v !== null && $v !== ''),
-            "GivenName" => $data['given_name'] ?? null
+            "ParentRef"  => isset($data['qbo_parent_id']) ? ["value" => $data['qbo_parent_id']] : null,
+            "Job"        => isset($data['qbo_parent_id']) ? true : null,
         ], fn($v) => $v !== null && $v !== '');
 
         return $this->sendRequest('POST', $this->endpoint('customer'), $payload);
