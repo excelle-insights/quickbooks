@@ -17,8 +17,12 @@ class QboCustomerRepository
             INSERT INTO qbo_customers (
                 local_id,
                 qbo_company_id,
+                parent_id
                 name,
                 display_name,
+                first_name,
+                middle_name,
+                last_name,
                 email,
                 phone,
                 company_name,
@@ -29,14 +33,18 @@ class QboCustomerRepository
                 active,
                 created_at,
                 updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
 
         $stmt->execute([
             $data['local_id'],
             $data['qbo_company_id'],
+            $data['parent_id'],
             $data['name'],
             $data['display_name'] ?? $data['name'],
+            $data['first_name'] ?? null,
+            $data['middle_name'] ?? null,
+            $data['last_name'] ?? null,
             $data['email'] ?? null,
             $data['phone'] ?? null,
             $data['company_name'] ?? null,
@@ -89,6 +97,9 @@ class QboCustomerRepository
             SET
                 name = ?,
                 display_name = ?,
+                first_name = ?,
+                middle_name = ?,
+                last_name = ?,
                 email = ?,
                 phone = ?,
                 company_name = ?,
@@ -104,6 +115,9 @@ class QboCustomerRepository
         $stmt->execute([
             $data['name'],
             $data['display_name'] ?? $data['name'],
+            $data['first_name'] ?? null,
+            $data['middle_name'] ?? null,
+            $data['last_name'] ?? null,
             $data['email'] ?? null,
             $data['phone'] ?? null,
             $data['company_name'] ?? null,
