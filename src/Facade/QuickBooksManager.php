@@ -136,7 +136,16 @@ class QuickBooksManager
 
         return $service->create($data);
     }
-
+    public function getCustomer($id)
+    {
+        $client = new CustomerClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+        return $client->getById($id);
+    }
     /**
      * -------------------------
      * Invoices
