@@ -18,6 +18,18 @@ class CustomerSyncService
         $localId = $this->customers->create($data);
 
         try {
+            if (!empty($data['parent_id'])) {
+                // Fetch from local parent if provided
+                $parent = $this->customers->find($data['parent_id']);
+                if ($parent && $parent->qbo_id) {
+                    $data['qbo_parent_id'] = $parent->qbo_id;
+                }
+
+                if (isset($data['parent_id']) && !isset($data['qbo_parent_id'])) {
+                    throw new \InvalidArgumentException('Parent QBO ID is required for QBO sync');
+                }
+            }
+
             // Create in QBO
             $response = $this->qbo->create($data);
 
@@ -29,8 +41,7 @@ class CustomerSyncService
             $this->customers->markSynced(
                 $localId,
                 $response->Customer->Id,
-                $response->Customer->SyncToken,
-                "synced"
+                $response->Customer->SyncToken
             );
 
             return (object)[
@@ -42,8 +53,8 @@ class CustomerSyncService
 
         } catch (\Throwable $e) {
             error_log("QBO Customer sync failed: " . $e->getMessage());
-            // Leave unsynced, retry later
 
+            // Leave unsynced, retry later
             $this->customers->markFailed(
                 $localId,
                 $e->getMessage()

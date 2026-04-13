@@ -24,6 +24,7 @@ $result = $qbo->createCustomer([
     'city'         => 'Nairobi',
     'postal_code'  => '00100',
     'line'         => 'Ngong Road',
+    'parent_id'   => 5, // or set to an existing local customer ID to link as parent
 ]);
 
 if ($result->status === 'synced') {

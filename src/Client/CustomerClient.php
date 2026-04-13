@@ -28,8 +28,8 @@ class CustomerClient extends BaseClient
                 "Line1"                  => $data['line'] ?? null,
                 "Country"                => $data['country'] ?? null
             ], fn($v) => $v !== null && $v !== ''),
-
-            "ParentRef"  => isset($data['parent_id']) ? ["value" => $data['parent_id']] : null,
+            "ParentRef"  => isset($data['qbo_parent_id']) ? ["value" => $data['qbo_parent_id']] : null,
+            "Job"        => isset($data['qbo_parent_id']) ? true : null,
         ], fn($v) => $v !== null && $v !== '');
 
         return $this->sendRequest('POST', $this->endpoint('customer'), $payload);
