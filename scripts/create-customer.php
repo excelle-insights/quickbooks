@@ -7,10 +7,16 @@ use ExcelleInsights\QuickBooks\Facade\QuickBooksManager;
 $qbo = new QuickBooksManager();
 
 $index = 15;
+$first_name = "Ruth";
+$middle_name = "Blondee";
+$last_name = "Langmore";
 
 $result = $qbo->createCustomer([
     'qbo_company_id' => 1,
-    'name'  => 'Test Customer'.$index,
+    'first_name'    => $first_name,
+    'middle_name'   => $middle_name,
+    'last_name'     => $last_name,
+    'name'  => $first_name . ' ' . $middle_name . ' ' . $last_name,
     'email'         => 'testcustomer'.$index.'@email.com',
     'phone'         => '+254724565654'.$index,
     'company_name' => 'Test Company '.$index,

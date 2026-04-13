@@ -17,7 +17,7 @@ class QboCustomerRepository
             INSERT INTO qbo_customers (
                 local_id,
                 qbo_company_id,
-                parent_id
+                parent_id,
                 name,
                 display_name,
                 first_name,
