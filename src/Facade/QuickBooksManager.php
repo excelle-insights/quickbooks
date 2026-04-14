@@ -16,6 +16,7 @@ use ExcelleInsights\QuickBooks\Client\ClassClient;
 use ExcelleInsights\QuickBooks\Client\BillClient;
 use ExcelleInsights\QuickBooks\Client\BillPaymentClient;
 use ExcelleInsights\QuickBooks\Client\TaxCodeClient;
+use ExcelleInsights\QuickBooks\Client\ItemClient;
 
 use ExcelleInsights\QuickBooks\Contracts\HttpClientInterface;
 use ExcelleInsights\QuickBooks\Repositories\TokenRepository;
@@ -32,6 +33,7 @@ use ExcelleInsights\QuickBooks\Repositories\QboClassRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboBillRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboBillItemRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboTaxCodeRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboItemRepository;
 
 use ExcelleInsights\QuickBooks\Services\CustomerSyncService;
 use ExcelleInsights\QuickBooks\Services\InvoiceSyncService;
@@ -42,6 +44,7 @@ use ExcelleInsights\QuickBooks\Services\VendorSyncService;
 use ExcelleInsights\QuickBooks\Services\ClassSyncService;
 use ExcelleInsights\QuickBooks\Services\BillSyncService;
 use ExcelleInsights\QuickBooks\Services\TaxCodeSyncService;
+use ExcelleInsights\QuickBooks\Services\ItemSyncService;
 
 use ExcelleInsights\QuickBooks\Validation\JournalEntryValidator;
 use ExcelleInsights\QuickBooks\Validation\VendorValidator;
@@ -665,5 +668,159 @@ class QuickBooksManager
                 'results' => []
             ];
         }
+    }
+
+    /**
+     * -------------------------
+     * Items (Products / Services / Categories)
+     * -------------------------
+     */
+
+    /**
+     * Create an Item locally and sync to QuickBooks Online.
+     */
+    public function createItem(array $data): object
+    {
+        if (empty($data['qbo_company_id'])) {
+            throw new \InvalidArgumentException('qbo_company_id is required');
+        }
+
+        if (empty($data['name'])) {
+            throw new \InvalidArgumentException('Item name is required');
+        }
+
+        $itemRepo  = new QboItemRepository($this->pdo);
+        $classRepo = new QboClassRepository($this->pdo);
+
+        $client = new ItemClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new ItemSyncService(
+            $itemRepo,
+            $classRepo,
+            $client
+        );
+
+        return $service->create($data);
+    }
+
+    /**
+     * Retrieve a single Item from QuickBooks by QBO ID.
+     */
+    public function getItem(string $id): object
+    {
+        $client = new ItemClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getById($id);
+    }
+
+    /**
+     * Retrieve all Items from QuickBooks Online.
+     */
+    public function getAllItems(int $maxResults = 1000, int $startPosition = 1): object
+    {
+        $client = new ItemClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getAll($maxResults, $startPosition);
+    }
+
+    /**
+     * Retrieve all Items of a specific type from QuickBooks Online.
+     * Types: Service, Inventory, NonInventory, Category, Group, Fixed Asset
+     */
+    public function getItemsByType(string $type, int $maxResults = 1000, int $startPosition = 1): object
+    {
+        $client = new ItemClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getAllByType($type, $maxResults, $startPosition);
+    }
+
+    /**
+     * Search for an Item by name in QuickBooks Online.
+     */
+    public function searchItem(string $name): object
+    {
+        $client = new ItemClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->searchByName($name);
+    }
+
+    /**
+     * Deactivate an Item in QuickBooks Online (soft delete).
+     */
+    public function deactivateItem(string $qboId, string $syncToken): object
+    {
+        $client = new ItemClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->deactivate($qboId, $syncToken);
+    }
+
+    /**
+     * Pull all Items from QuickBooks Online and store locally.
+     * Run during setup or periodically to keep local items in sync.
+     */
+    public function syncItems(int $qboCompanyId): array
+    {
+        $itemRepo  = new QboItemRepository($this->pdo);
+        $classRepo = new QboClassRepository($this->pdo);
+
+        $client = new ItemClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new ItemSyncService(
+            $itemRepo,
+            $classRepo,
+            $client
+        );
+
+        return $service->sync($qboCompanyId);
+    }
+
+    /**
+     * Update an existing Item in QuickBooks Online (sparse update).
+     */
+    public function updateItem(string $qboId, string $syncToken, array $data): object
+    {
+        $client = new ItemClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->update($qboId, $syncToken, $data);
     }
 }
