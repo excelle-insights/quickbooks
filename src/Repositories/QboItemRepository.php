@@ -1,5 +1,7 @@
 <?php
 
+namespace ExcelleInsights\QuickBooks\Repositories;
+
 /**
  * File: src/Repositories/QboItemRepository.php
  *
@@ -9,7 +11,6 @@
  * Table name is resolved from QBO_TABLE_PREFIX env variable.
  */
 
-namespace ExcelleInsights\QuickBooks\Repositories;
 
 use PDO;
 

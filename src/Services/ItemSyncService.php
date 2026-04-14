@@ -1,5 +1,7 @@
 <?php
 
+namespace ExcelleInsights\QuickBooks\Services;
+
 /**
  * File: src/Services/ItemSyncService.php
  *
@@ -8,8 +10,6 @@
  * items from QBO into the local database.
  * Follows the same patterns as BillSyncService.
  */
-
-namespace ExcelleInsights\QuickBooks\Services;
 
 use ExcelleInsights\QuickBooks\Repositories\QboItemRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboClassRepository;

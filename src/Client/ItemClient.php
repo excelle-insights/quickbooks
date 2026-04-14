@@ -1,5 +1,6 @@
 <?php
 
+namespace ExcelleInsights\QuickBooks\Client;
 /**
  * File: src/Client/ItemClient.php
  *
@@ -7,8 +8,6 @@
  * Handles create, read, update, search, and deactivation of items via the QBO REST API.
  * Follows the same patterns as BillClient and CustomerClient.
  */
-
-namespace ExcelleInsights\QuickBooks\Client;
 
 class ItemClient extends BaseClient
 {
