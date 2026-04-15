@@ -6,6 +6,7 @@ use ExcelleInsights\QuickBooks\Repositories\QboInvoiceRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboInvoiceItemRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboCustomerRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboClassRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboItemRepository;
 use ExcelleInsights\QuickBooks\Client\InvoiceClient;
 
 class InvoiceSyncService
@@ -15,6 +16,7 @@ class InvoiceSyncService
         private QboInvoiceItemRepository $invoiceItemRepo,
         private QboCustomerRepository $customerRepo,
         private QboClassRepository $classRepo,
+        private QboItemRepository $itemRepo,
         private InvoiceClient $invoiceClient
     ) {}
 
@@ -37,6 +39,7 @@ class InvoiceSyncService
             if (!empty($item['qbo_class_id'])) {
 
                 $class = $this->classRepo->find($item['qbo_class_id']);
+                $item = $this->itemRepo->find($item['qbo_item_id']);
 
                 if ($class && $class->qbo_id) {
                     $item['class_qbo_id'] = $class->qbo_id;

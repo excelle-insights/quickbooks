@@ -17,7 +17,7 @@ class QboInvoiceItemRepository
             INSERT INTO qbo_invoice_items (
                 qbo_invoice_id,
                 qbo_class_id,
-                item_id,
+                qbo_item_id,
                 item_name,
                 description,
                 quantity,
@@ -30,7 +30,7 @@ class QboInvoiceItemRepository
         $stmt->execute([
             $data['qbo_invoice_id'] ?? null,
             $data['qbo_class_id'] ?? null,
-            $data['item_id'] ?? null,
+            $data['qbo_item_id'] ?? null,
             $data['item_name'] ?? null,
             $data['description'] ?? '',
             $data['quantity'] ?? 1,
@@ -59,7 +59,7 @@ class QboInvoiceItemRepository
                 'Description' => $row->description,
                 'SalesItemLineDetail' => [
                     "ItemRef" => [
-                        "value" => isset($row->item_id) ? $row->item_id : "",
+                        "value" => isset($row->qbo_item_id) ? $row->qbo_item_id : "",
                         "name" => isset($row->item_name) ? $row->item_name : ""
                     ],
                     'Qty' => (float) $row->quantity,
