@@ -201,7 +201,8 @@ class QuickBooksManager
             $customerRepo,
             $classRepo,
             $itemRepo,
-            $client
+            $client,
+            $this->pdo
         );
 
         return $service->create($data);

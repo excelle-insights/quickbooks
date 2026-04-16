@@ -2,12 +2,14 @@
 
 namespace ExcelleInsights\QuickBooks\Services;
 
+use PDO;
 use ExcelleInsights\QuickBooks\Repositories\QboInvoiceRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboInvoiceItemRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboCustomerRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboClassRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboItemRepository;
 use ExcelleInsights\QuickBooks\Client\InvoiceClient;
+use ExcelleInsights\QuickBooks\Repositories\QboTaxCodeRepository;
 
 class InvoiceSyncService
 {
@@ -17,7 +19,8 @@ class InvoiceSyncService
         private QboCustomerRepository $customerRepo,
         private QboClassRepository $classRepo,
         private QboItemRepository $itemRepo,
-        private InvoiceClient $invoiceClient
+        private InvoiceClient $invoiceClient,
+        private PDO $pdo
     ) {}
 
     /**
@@ -31,21 +34,41 @@ class InvoiceSyncService
         $items = [];
 
         foreach ($data['items'] ?? [] as $item) {
-
             $item['qbo_invoice_id'] = $localId;
             $this->invoiceItemRepo->create($item);
 
+            // Resolve item (Get QBO item ID if mapped locally)
+            if (!empty($item['qbo_item_id'])) {
+                $qbo_item = $this->itemRepo->find($item['qbo_item_id']);
+
+                if ($qbo_item && $qbo_item->qbo_id) {
+                    $item['item_id'] = $qbo_item->qbo_id;
+                }
+            }
+
             // Resolve class
             if (!empty($item['qbo_class_id'])) {
-
-                $class = $this->classRepo->find($item['qbo_class_id']);
-                $item = $this->itemRepo->find($item['qbo_item_id']);
+                $class = $this->classRepo->find($item['qbo_class_id']);                
 
                 if ($class && $class->qbo_id) {
                     $item['class_qbo_id'] = $class->qbo_id;
                 } else {
                     throw new \RuntimeException(
                         "Class must be synced before using it in invoice."
+                    );
+                }
+            }
+
+            // Resolve tax
+            $taxRepo = new QboTaxCodeRepository($this->pdo);
+            if (!empty($item['qbo_tax_id'])) {
+                $tax = $taxRepo->find($item['qbo_tax_id']);                
+
+                if ($tax && $tax->qbo_id) {
+                    $item['tax_qbo_id'] = $tax->qbo_id;
+                } else {
+                    throw new \RuntimeException(
+                        "Tax code must be synced before using it in invoice."
                     );
                 }
             }

@@ -18,19 +18,21 @@ class QboInvoiceItemRepository
                 qbo_invoice_id,
                 qbo_class_id,
                 qbo_item_id,
+                qbo_tax_id,
                 item_name,
                 description,
                 quantity,
                 unit_price,
                 created_at,
                 updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
 
         $stmt->execute([
             $data['qbo_invoice_id'] ?? null,
             $data['qbo_class_id'] ?? null,
             $data['qbo_item_id'] ?? null,
+            $data['qbo_tax_id'] ?? null,
             $data['item_name'] ?? null,
             $data['description'] ?? '',
             $data['quantity'] ?? 1,
