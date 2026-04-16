@@ -28,11 +28,11 @@ class InvoiceClient extends BaseClient
             'TxnDate'     => $data['txn_date'] ?? date('Y-m-d'),
             'PrivateNote' => $data['notes'] ?? null,
             'Line'        => $this->buildLines($data['items']),
-            'TxnTaxDetail' => [
-                "TxnTaxCodeRef" => [
-                    'value' => 6
-                ]
-            ]
+            // 'TxnTaxDetail' => [
+            //     "TxnTaxCodeRef" => [
+            //         'value' => 6
+            //     ]
+            // ]
         ], fn($v) => $v !== null);
 
         return $this->sendRequest('POST', $this->endpoint('invoice'), $payload);
@@ -85,7 +85,7 @@ class InvoiceClient extends BaseClient
 
             $salesItemDetail = [];
 
-            // ✅ Only include ItemRef if it has a value
+            // Only include ItemRef if it has a value
             if (!empty($item['item_id'])) {
                 $salesItemDetail['ItemRef'] = [
                     'value' => $item['item_id']
@@ -100,14 +100,17 @@ class InvoiceClient extends BaseClient
                 ? (float) $item['unit_price']
                 : 0;
 
-            $salesItemDetail['TaxCodeRef'] = [
-                'value' => $item['tax_code'] ?? 'NON'
-            ];
-
-            // ✅ Add ClassRef only if valid
+            // Add ClassRef only if valid
             if (!empty($item['class_qbo_id'])) {
                 $salesItemDetail['ClassRef'] = [
                     'value' => $item['class_qbo_id']
+                ];
+            }
+
+            // Add TaxCodeRef only if valid
+            if (!empty($item['tax_qbo_id'])) {
+                $salesItemDetail['TaxCodeRef'] = [
+                    'value' => $item['tax_qbo_id']
                 ];
             }
 
