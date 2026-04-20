@@ -30,6 +30,7 @@ class CustomerClient extends BaseClient
             ], fn($v) => $v !== null && $v !== ''),
             "ParentRef"  => isset($data['qbo_parent_id']) ? ["value" => $data['qbo_parent_id']] : null,
             "Job"        => isset($data['qbo_parent_id']) ? true : null,
+            "PrimaryTaxIdentifier" => $data['kra_pin'] ?? null
         ], fn($v) => $v !== null && $v !== '');
 
         return $this->sendRequest('POST', $this->endpoint('customer'), $payload);

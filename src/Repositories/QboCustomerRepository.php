@@ -25,6 +25,7 @@ class QboCustomerRepository
                 last_name,
                 email,
                 phone,
+                kra_pin,
                 company_name,
                 country,
                 city,
@@ -33,7 +34,7 @@ class QboCustomerRepository
                 active,
                 created_at,
                 updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
 
         $stmt->execute([
@@ -47,6 +48,7 @@ class QboCustomerRepository
             $data['last_name'] ?? null,
             $data['email'] ?? null,
             $data['phone'] ?? null,
+            $data['kra_pin'] ?? null,
             $data['company_name'] ?? null,
             $data['country'] ?? null,
             $data['city'] ?? null,
@@ -102,6 +104,7 @@ class QboCustomerRepository
                 last_name = ?,
                 email = ?,
                 phone = ?,
+                kra_pin = ?,
                 company_name = ?,
                 country = ?,
                 city = ?,
@@ -120,6 +123,7 @@ class QboCustomerRepository
             $data['last_name'] ?? null,
             $data['email'] ?? null,
             $data['phone'] ?? null,
+            $data['kra_pin'] ?? null,
             $data['company_name'] ?? null,
             $data['country'] ?? null,
             $data['city'] ?? null,
