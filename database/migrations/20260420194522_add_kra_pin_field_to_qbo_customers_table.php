@@ -22,11 +22,16 @@ final class AddKraPinFieldToQboCustomersTable extends AbstractMigration
         $tableName = $_ENV['QBO_TABLE_PREFIX'] . '_customers';
 
         if (!$this->hasTable($tableName)) {
+            error_log("Table $tableName does not exist. Skipping migration.");
             return;
         }
 
         $table = $this->table($tableName);
+        if ($table->hasColumn('kra_pin')) {
+            error_log("Column 'kra_pin' already exists in $tableName. Skipping migration.");
+            return;
+        }
         $table->addColumn('kra_pin', 'string', ['null' => true, 'after' => 'postal_code'])
-              ->update();
+            ->update();
     }
 }
