@@ -19,7 +19,7 @@ final class AddLocalTaxIdFieldToQboTaxCodesTable extends AbstractMigration
      */
     public function change(): void
     {
-        $tableName = $_ENV['QBO_TABLE_PREFIX'] . '_tax_codes';
+        $tableName = array_key_exists('QBO_TABLE_PREFIX', $_ENV) ? $_ENV['QBO_TABLE_PREFIX'] . '_tax_codes' : 'qbo_tax_codes';
 
         if ($this->hasTable($tableName)) {
             $table = $this->table($tableName);

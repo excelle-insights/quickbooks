@@ -19,10 +19,11 @@ final class UpdateItemIdFieldToQboItemIdInQboInvoiceItemsTable extends AbstractM
      */
     public function change(): void
     {
-        if ($this->hasTable($_ENV['QBO_TABLE_PREFIX'] . '_invoice_items')) {
-            $table = $this->table($_ENV['QBO_TABLE_PREFIX'] . '_invoice_items');
+        $tableName = array_key_exists('QBO_TABLE_PREFIX', $_ENV) ? $_ENV['QBO_TABLE_PREFIX'] . '_invoice_items' : 'qbo_invoice_items';
+        if ($this->hasTable($tableName)) {
+            $table = $this->table($tableName);
             if ($table->hasColumn('item_id')) {
-                $table->changeColumn('item_id', 'integer', ['comment' => 'Stores the local id of items in QuickBooks Online. References ' . $_ENV['QBO_TABLE_PREFIX'] . '_items.id'])->update();
+                $table->changeColumn('item_id', 'integer', ['comment' => 'Stores the local id of items in QuickBooks Online. References ' . $tableName . '.id'])->update();
             }
 
             if ($table->hasColumn('item_id')) {
