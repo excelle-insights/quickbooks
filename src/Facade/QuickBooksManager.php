@@ -164,7 +164,7 @@ class QuickBooksManager
             $this->auth,
             $this->http
         );
-        return $client->getWithOutstandingBalances($startPosition = 1, $maxResults = 1000);
+        return $client->getWithOutstandingBalances($startPosition, $maxResults);
     }
 
     /**
