@@ -19,7 +19,7 @@ final class AddKraPinFieldToQboCustomersTable extends AbstractMigration
      */
     public function change(): void
     {
-        $tableName = $_ENV['QBO_TABLE_PREFIX'] . '_customers';
+        $tableName = array_key_exists('QBO_TABLE_PREFIX', $_ENV) ? $_ENV['QBO_TABLE_PREFIX'] . '_customers' : 'qbo_customers';
 
         if (!$this->hasTable($tableName)) {
             error_log("Table $tableName does not exist. Skipping migration.");

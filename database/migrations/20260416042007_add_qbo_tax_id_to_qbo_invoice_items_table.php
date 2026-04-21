@@ -19,7 +19,7 @@ final class AddQboTaxIdToQboInvoiceItemsTable extends AbstractMigration
      */
     public function change(): void
     {
-        $tableName = $_ENV['QBO_TABLE_PREFIX'] . '_invoice_items';
+        $tableName = array_key_exists('QBO_TABLE_PREFIX', $_ENV) ? $_ENV['QBO_TABLE_PREFIX'] . '_invoice_items' : 'qbo_invoice_items';
         if ($this->hasTable($tableName)) {
             $table = $this->table($tableName);
             if (!$table->hasColumn('qbo_tax_id')) {

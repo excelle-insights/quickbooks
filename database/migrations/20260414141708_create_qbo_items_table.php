@@ -17,7 +17,8 @@ final class CreateQboItemsTable extends AbstractMigration
 {
     public function change(): void
     {
-        $table = $this->table(($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_items');
+        $tableName = array_key_exists('QBO_TABLE_PREFIX', $_ENV) ? $_ENV['QBO_TABLE_PREFIX'] . '_items' : 'qbo_items';
+        $table = $this->table($tableName);
 
         $table
             ->addColumn('qbo_company_id', 'integer', [
