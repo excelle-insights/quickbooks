@@ -11,7 +11,9 @@ class CustomerClient extends BaseClient
     {
         $payload = array_filter([
             "FullyQualifiedName" => $data['name'] ?? null,
-            "PrimaryEmailAddr"   => ["Address" => $data['email'] ?? null],
+            "PrimaryEmailAddr"   => !empty($data['email'])
+                ? ["Address" => $data['email']]
+                : null,
             "DisplayName"        => $data['name'] ?? null,
             "GivenName"          => $data['first_name'] ?? null,
             "MiddleName"         => $data['middle_name'] ?? null,
@@ -19,7 +21,9 @@ class CustomerClient extends BaseClient
             "Suffix"             => $data['suffix'] ?? null,
             "Title"              => $data['title'] ?? null,
             "Notes"              => $data['notes'] ?? null,
-            "PrimaryPhone"       => ["FreeFormNumber" => $data['phone'] ?? null],
+            "PrimaryPhone"       => !empty($data['phone'])
+                ? ["FreeFormNumber" => $data['phone']]
+                : null,
             "CompanyName"        => $data['company_name'] ?? null,
             "BillAddr"           => array_filter([
                 "CountrySubDivisionCode" => $data['country_code'] ?? null,
@@ -27,7 +31,7 @@ class CustomerClient extends BaseClient
                 "PostalCode"             => $data['postal_code'] ?? null,
                 "Line1"                  => $data['line'] ?? null,
                 "Country"                => $data['country'] ?? null
-            ], fn($v) => $v !== null && $v !== ''),
+            ], fn($v) => $v !== null && $v !== '') ?: null,
             "ParentRef"  => isset($data['qbo_parent_id']) ? ["value" => $data['qbo_parent_id']] : null,
             "Job"        => isset($data['qbo_parent_id']) ? true : null,
             "PrimaryTaxIdentifier" => $data['kra_pin'] ?? null
@@ -95,7 +99,7 @@ class CustomerClient extends BaseClient
      */
     public function getWithOutstandingBalances(int $startPosition = 1, int $maxResults = 1000): object
     {
-        $query = "SELECT Id, GivenName, MiddleName, FamilyName, DisplayName, PrimaryPhone, PrimaryEmailAddr, Balance, BalanceWithJobs FROM Customer WHERE Balance > '0' STARTPOSITION " . $startPosition . " MAXRESULTS " . $maxResults;
+        $query = "SELECT Id, GivenName, MiddleName, FamilyName, DisplayName, PrimaryPhone, PrimaryEmailAddr, Balance, BalanceWithJobs, PrimaryTaxIdentifier FROM Customer WHERE Balance > '0' STARTPOSITION " . $startPosition . " MAXRESULTS " . $maxResults;
         return $this->sendRequest('GET', $this->endpoint("query?query=" . rawurlencode($query)));
     }
 }
