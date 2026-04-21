@@ -99,7 +99,7 @@ class CustomerClient extends BaseClient
      */
     public function getWithOutstandingBalances(int $startPosition = 1, int $maxResults = 1000): object
     {
-        $query = "SELECT Id, GivenName, MiddleName, FamilyName, DisplayName, PrimaryPhone, PrimaryEmailAddr, Balance, BalanceWithJobs FROM Customer WHERE Balance > '0' STARTPOSITION " . $startPosition . " MAXRESULTS " . $maxResults;
+        $query = "SELECT Id, GivenName, MiddleName, FamilyName, DisplayName, PrimaryPhone, PrimaryEmailAddr, Balance, BalanceWithJobs, PrimaryTaxIdentifier FROM Customer WHERE Balance > '0' STARTPOSITION " . $startPosition . " MAXRESULTS " . $maxResults;
         return $this->sendRequest('GET', $this->endpoint("query?query=" . rawurlencode($query)));
     }
 }
