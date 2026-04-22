@@ -31,10 +31,12 @@ class QboCustomerRepository
                 city,
                 postal_code,
                 line,
+                line1,
+                line2,
                 active,
                 created_at,
                 updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
 
         $stmt->execute([
@@ -54,6 +56,8 @@ class QboCustomerRepository
             $data['city'] ?? null,
             $data['postal_code'] ?? null,
             $data['line'] ?? null,
+            $data['line1'] ?? null,
+            $data['line2'] ?? null,
             $data['active'] ?? true,
         ]);
 
@@ -110,6 +114,8 @@ class QboCustomerRepository
                 city = ?,
                 postal_code = ?,
                 line = ?,
+                line1 = ?,
+                line2 = ?,
                 active = ?,
                 updated_at = NOW()
             WHERE id = ?
@@ -129,6 +135,8 @@ class QboCustomerRepository
             $data['city'] ?? null,
             $data['postal_code'] ?? null,
             $data['line'] ?? null,
+            $data['line1'] ?? null,
+            $data['line2'] ?? null,
             $data['active'] ?? true,
             $id
         ]);
