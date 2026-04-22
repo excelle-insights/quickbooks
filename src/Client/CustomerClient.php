@@ -29,7 +29,8 @@ class CustomerClient extends BaseClient
                 "CountrySubDivisionCode" => $data['country_code'] ?? null,
                 "City"                   => $data['city'] ?? null,
                 "PostalCode"             => $data['postal_code'] ?? null,
-                "Line1"                  => $data['line'] ?? null,
+                "Line1"                  => $data['line1'] ?? null,
+                "Line2"                  => $data['line2'] ?? null,
                 "Country"                => $data['country'] ?? null
             ], fn($v) => $v !== null && $v !== '') ?: null,
             "ParentRef"  => isset($data['qbo_parent_id']) ? ["value" => $data['qbo_parent_id']] : null,
