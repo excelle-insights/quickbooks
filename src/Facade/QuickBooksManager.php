@@ -156,6 +156,16 @@ class QuickBooksManager
         return $client->getById($id);
     }
 
+    public function getAllCustomers(int $startPosition = 1, int $maxResults = 1000)
+    {
+        $client = new CustomerClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+        return $client->getAll($startPosition, $maxResults);
+    }
     public function getCustomersWithBalances(int $startPosition = 1, int $maxResults = 1000)
     {
         $client = new CustomerClient(
