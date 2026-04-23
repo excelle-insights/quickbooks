@@ -76,7 +76,14 @@ class CustomerClient extends BaseClient
 
         return $this->sendRequest('POST', $this->endpoint('customer'), $payload);
     }
-
+    /**
+     * Get customers with outstanding balances (balance > 0)
+     */
+    public function getAll(int $startPosition = 1, int $maxResults = 1000): object
+    {
+        $query = "SELECT Id, GivenName, MiddleName, FamilyName, DisplayName, PrimaryPhone, PrimaryEmailAddr, Balance, BalanceWithJobs, PrimaryTaxIdentifier FROM Customer STARTPOSITION " . $startPosition . " MAXRESULTS " . $maxResults;
+        return $this->sendRequest('GET', $this->endpoint("query?query=" . rawurlencode($query)));
+    }
     /**
      * Get a single customer's balance by QuickBooks ID
      */
