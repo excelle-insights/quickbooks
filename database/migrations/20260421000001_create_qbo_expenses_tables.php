@@ -39,7 +39,7 @@ final class CreateQboExpensesTables extends AbstractMigration
          */
         if (!$this->hasTable('qbo_expense_items')) {
             $this->table('qbo_expense_items')
-                ->addColumn('expense_id',      'integer', ['null' => false, 'signed' => false, 'comment' => 'References qbo_expenses.id'])
+                ->addColumn('expense_id',      'integer', ['null' => false, 'comment' => 'References qbo_expenses.id'])
                 ->addColumn('account_qbo_id',  'string',  ['null' => false, 'comment' => 'QBO expense account (Category)'])
                 ->addColumn('qbo_class_id',    'integer', ['null' => true,  'comment' => 'References qbo_classes.id'])
                 ->addColumn('tax_code_id',     'integer', ['null' => true,  'comment' => 'References qbo_tax_codes.id'])
