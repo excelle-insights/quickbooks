@@ -11,23 +11,31 @@ class CustomerClient extends BaseClient
     {
         $payload = array_filter([
             "FullyQualifiedName" => $data['name'] ?? null,
-            "PrimaryEmailAddr"   => ["Address" => $data['email'] ?? null],
+            "PrimaryEmailAddr"   => !empty($data['email'])
+                ? ["Address" => $data['email']]
+                : null,
             "DisplayName"        => $data['name'] ?? null,
+            "GivenName"          => $data['first_name'] ?? null,
+            "MiddleName"         => $data['middle_name'] ?? null,
+            "FamilyName"         => $data['last_name'] ?? null,
             "Suffix"             => $data['suffix'] ?? null,
             "Title"              => $data['title'] ?? null,
-            "MiddleName"         => $data['middle_name'] ?? null,
             "Notes"              => $data['notes'] ?? null,
-            "FamilyName"         => $data['sur_name'] ?? null,
-            "PrimaryPhone"       => ["FreeFormNumber" => $data['phone'] ?? null],
+            "PrimaryPhone"       => !empty($data['phone'])
+                ? ["FreeFormNumber" => $data['phone']]
+                : null,
             "CompanyName"        => $data['company_name'] ?? null,
             "BillAddr"           => array_filter([
                 "CountrySubDivisionCode" => $data['country_code'] ?? null,
                 "City"                   => $data['city'] ?? null,
                 "PostalCode"             => $data['postal_code'] ?? null,
-                "Line1"                  => $data['line'] ?? null,
+                "Line1"                  => $data['line1'] ?? null,
+                "Line2"                  => $data['line2'] ?? null,
                 "Country"                => $data['country'] ?? null
-            ], fn($v) => $v !== null && $v !== ''),
-            "GivenName" => $data['given_name'] ?? null
+            ], fn($v) => $v !== null && $v !== '') ?: null,
+            "ParentRef"  => isset($data['qbo_parent_id']) ? ["value" => $data['qbo_parent_id']] : null,
+            "Job"        => isset($data['qbo_parent_id']) ? true : null,
+            "PrimaryTaxIdentifier" => $data['kra_pin'] ?? null
         ], fn($v) => $v !== null && $v !== '');
 
         return $this->sendRequest('POST', $this->endpoint('customer'), $payload);
@@ -67,5 +75,39 @@ class CustomerClient extends BaseClient
         ];
 
         return $this->sendRequest('POST', $this->endpoint('customer'), $payload);
+    }
+    /**
+     * Get customers with outstanding balances (balance > 0)
+     */
+    public function getAll(int $startPosition = 1, int $maxResults = 1000): object
+    {
+        $query = "SELECT Id, GivenName, MiddleName, FamilyName, DisplayName, PrimaryPhone, PrimaryEmailAddr, Balance, BalanceWithJobs, PrimaryTaxIdentifier FROM Customer STARTPOSITION " . $startPosition . " MAXRESULTS " . $maxResults;
+        return $this->sendRequest('GET', $this->endpoint("query?query=" . rawurlencode($query)));
+    }
+    /**
+     * Get a single customer's balance by QuickBooks ID
+     */
+    public function getBalance(string $id): object
+    {
+        $query = "SELECT Id, DisplayName, Balance, BalanceWithJobs FROM Customer WHERE Id = '" . $id . "'";
+        return $this->sendRequest('GET', $this->endpoint("query?query=" . rawurlencode($query)));
+    }
+
+    /**
+     * Get all customers with their balances
+     */
+    public function getAllWithBalances(int $startPosition = 1, int $maxResults = 1000): object
+    {
+        $query = "SELECT Id, DisplayName, Balance, BalanceWithJobs FROM Customer STARTPOSITION " . $startPosition . " MAXRESULTS " . $maxResults;
+        return $this->sendRequest('GET', $this->endpoint("query?query=" . rawurlencode($query)));
+    }
+
+    /**
+     * Get customers with outstanding balances (balance > 0)
+     */
+    public function getWithOutstandingBalances(int $startPosition = 1, int $maxResults = 1000): object
+    {
+        $query = "SELECT Id, GivenName, MiddleName, FamilyName, DisplayName, PrimaryPhone, PrimaryEmailAddr, Balance, BalanceWithJobs, PrimaryTaxIdentifier FROM Customer WHERE Balance > '0' STARTPOSITION " . $startPosition . " MAXRESULTS " . $maxResults;
+        return $this->sendRequest('GET', $this->endpoint("query?query=" . rawurlencode($query)));
     }
 }

@@ -2,10 +2,10 @@
 require dirname(__DIR__) . '/vendor/autoload.php';
 
 use ExcelleInsights\QuickBooks\Facade\QuickBooksManager;
+use ExcelleInsights\QuickBooks\Client\CustomerClient;
 
-$id = 250;
 // Initialize the manager
 $qbo = new QuickBooksManager();
-echo json_encode($qbo->getInvoice($id));
+echo json_encode($qbo->getCustomersWithBalances());
 
 

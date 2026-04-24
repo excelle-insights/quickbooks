@@ -17,33 +17,47 @@ class QboCustomerRepository
             INSERT INTO qbo_customers (
                 local_id,
                 qbo_company_id,
+                parent_id,
                 name,
                 display_name,
+                first_name,
+                middle_name,
+                last_name,
                 email,
                 phone,
+                kra_pin,
                 company_name,
                 country,
                 city,
                 postal_code,
                 line,
+                line1,
+                line2,
                 active,
                 created_at,
                 updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         ");
 
         $stmt->execute([
             $data['local_id'],
             $data['qbo_company_id'],
+            $data['parent_id'],
             $data['name'],
             $data['display_name'] ?? $data['name'],
+            $data['first_name'] ?? null,
+            $data['middle_name'] ?? null,
+            $data['last_name'] ?? null,
             $data['email'] ?? null,
             $data['phone'] ?? null,
+            $data['kra_pin'] ?? null,
             $data['company_name'] ?? null,
             $data['country'] ?? null,
             $data['city'] ?? null,
             $data['postal_code'] ?? null,
             $data['line'] ?? null,
+            $data['line1'] ?? null,
+            $data['line2'] ?? null,
             $data['active'] ?? true,
         ]);
 
@@ -89,13 +103,19 @@ class QboCustomerRepository
             SET
                 name = ?,
                 display_name = ?,
+                first_name = ?,
+                middle_name = ?,
+                last_name = ?,
                 email = ?,
                 phone = ?,
+                kra_pin = ?,
                 company_name = ?,
                 country = ?,
                 city = ?,
                 postal_code = ?,
                 line = ?,
+                line1 = ?,
+                line2 = ?,
                 active = ?,
                 updated_at = NOW()
             WHERE id = ?
@@ -104,13 +124,19 @@ class QboCustomerRepository
         $stmt->execute([
             $data['name'],
             $data['display_name'] ?? $data['name'],
+            $data['first_name'] ?? null,
+            $data['middle_name'] ?? null,
+            $data['last_name'] ?? null,
             $data['email'] ?? null,
             $data['phone'] ?? null,
+            $data['kra_pin'] ?? null,
             $data['company_name'] ?? null,
             $data['country'] ?? null,
             $data['city'] ?? null,
             $data['postal_code'] ?? null,
             $data['line'] ?? null,
+            $data['line1'] ?? null,
+            $data['line2'] ?? null,
             $data['active'] ?? true,
             $id
         ]);

@@ -17,6 +17,7 @@ use ExcelleInsights\QuickBooks\Client\BillClient;
 use ExcelleInsights\QuickBooks\Client\BillPaymentClient;
 use ExcelleInsights\QuickBooks\Client\TaxCodeClient;
 use ExcelleInsights\QuickBooks\Client\ExpenseClient;
+use ExcelleInsights\QuickBooks\Client\ItemClient;
 
 use ExcelleInsights\QuickBooks\Contracts\HttpClientInterface;
 use ExcelleInsights\QuickBooks\Repositories\TokenRepository;
@@ -35,6 +36,7 @@ use ExcelleInsights\QuickBooks\Repositories\QboBillItemRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboTaxCodeRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboExpenseRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboExpenseItemRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboItemRepository;
 
 use ExcelleInsights\QuickBooks\Services\CustomerSyncService;
 use ExcelleInsights\QuickBooks\Services\InvoiceSyncService;
@@ -46,6 +48,7 @@ use ExcelleInsights\QuickBooks\Services\ClassSyncService;
 use ExcelleInsights\QuickBooks\Services\BillSyncService;
 use ExcelleInsights\QuickBooks\Services\TaxCodeSyncService;
 use ExcelleInsights\QuickBooks\Services\ExpenseSyncService;
+use ExcelleInsights\QuickBooks\Services\ItemSyncService;
 
 use ExcelleInsights\QuickBooks\Validation\JournalEntryValidator;
 use ExcelleInsights\QuickBooks\Validation\VendorValidator;
@@ -97,13 +100,7 @@ class QuickBooksManager
 
         $this->pdo = $pdo;
 
-        /**
-         * 🔌 HTTP client
-         * Default is instantiated internally
-         */
         if ($http === null) {
-            // ⚠️ DO NOT hard-reference CRM classes in the package
-            // Replace this with a factory later if needed
             $http = new \ExcelleInsights\QuickBooks\Support\DefaultHttpClient($this->pdo);
         }
 
@@ -121,10 +118,12 @@ class QuickBooksManager
     {
         return $this->auth->getAuthUrl();
     }
+
     public function getPdo(): PDO
     {
         return $this->pdo;
     }
+
     public function authenticate(string $code, string $realmId): void
     {
         $this->auth->exchangeAuthorizationCode($code, $realmId);
@@ -151,6 +150,38 @@ class QuickBooksManager
         return $service->create($data);
     }
 
+    public function getCustomer($id)
+    {
+        $client = new CustomerClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+        return $client->getById($id);
+    }
+
+    public function getAllCustomers(int $startPosition = 1, int $maxResults = 1000)
+    {
+        $client = new CustomerClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+        return $client->getAll($startPosition, $maxResults);
+    }
+    public function getCustomersWithBalances(int $startPosition = 1, int $maxResults = 1000)
+    {
+        $client = new CustomerClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+        return $client->getWithOutstandingBalances($startPosition, $maxResults);
+    }
+
     /**
      * -------------------------
      * Invoices
@@ -166,10 +197,11 @@ class QuickBooksManager
             throw new \InvalidArgumentException('Invoice items are required');
         }
 
-        $invoiceRepo  = new QboInvoiceRepository($this->pdo);
-        $invoiceItemRepo  = new QboInvoiceItemRepository($this->pdo);
-        $customerRepo = new QboCustomerRepository($this->pdo);
-        $classRepo = new QboClassRepository($this->pdo);
+        $invoiceRepo     = new QboInvoiceRepository($this->pdo);
+        $invoiceItemRepo = new QboInvoiceItemRepository($this->pdo);
+        $customerRepo    = new QboCustomerRepository($this->pdo);
+        $classRepo       = new QboClassRepository($this->pdo);
+        $itemRepo        = new QboItemRepository($this->pdo);
 
         $client = new InvoiceClient(
             $this->baseUrl,
@@ -183,11 +215,14 @@ class QuickBooksManager
             $invoiceItemRepo,
             $customerRepo,
             $classRepo,
-            $client
+            $itemRepo,
+            $client,
+            $this->pdo
         );
 
         return $service->create($data);
     }
+
     public function getInvoice($id)
     {
         $client = new InvoiceClient(
@@ -198,6 +233,7 @@ class QuickBooksManager
         );
         return $client->getById($id);
     }
+
     /**
      * -------------------------
      * Payments
@@ -213,14 +249,10 @@ class QuickBooksManager
             throw new \InvalidArgumentException('qbo_customer_id is required');
         }
 
-        // if (empty($data['items']) || !is_array($data['items'])) {
-        //     throw new \InvalidArgumentException('Payment items are required');
-        // }
-
-        $paymentRepo  = new QboPaymentRepository($this->pdo);
-        $paymentItemRepo  = new QboPaymentItemRepository($this->pdo);
-        $customerRepo = new QboCustomerRepository($this->pdo);
-        $invoiceRepo = new QboInvoiceRepository($this->pdo);
+        $paymentRepo     = new QboPaymentRepository($this->pdo);
+        $paymentItemRepo = new QboPaymentItemRepository($this->pdo);
+        $customerRepo    = new QboCustomerRepository($this->pdo);
+        $invoiceRepo     = new QboInvoiceRepository($this->pdo);
 
         $client = new PaymentClient(
             $this->baseUrl,
@@ -239,6 +271,12 @@ class QuickBooksManager
 
         return $service->create($data);
     }
+
+    /**
+     * -------------------------
+     * Accounts
+     * -------------------------
+     */
     public function createAccount(array $data): object
     {
         if (empty($data['qbo_company_id'])) {
@@ -253,10 +291,8 @@ class QuickBooksManager
             throw new \InvalidArgumentException('account_type is required');
         }
 
-        // Repository
         $accountRepo = new QboAccountRepository($this->pdo);
 
-        // QBO client
         $client = new AccountClient(
             $this->baseUrl,
             $this->companyId,
@@ -264,7 +300,6 @@ class QuickBooksManager
             $this->http
         );
 
-        // Sync service
         $service = new AccountSyncService(
             $accountRepo,
             $client
@@ -272,6 +307,7 @@ class QuickBooksManager
 
         return $service->create($data);
     }
+
     public function getAllAccounts()
     {
         $client = new AccountClient(
@@ -282,15 +318,21 @@ class QuickBooksManager
         );
         return $client->getAll();
     }
+
+    /**
+     * -------------------------
+     * Journal Entries
+     * -------------------------
+     */
     public function createJournalEntry(array $data): object
     {
         JournalEntryValidator::validate($data);
 
-        $data['txn_date'] = date('Y-m-d', strtotime($data['txn_date']));
+        $data['txn_date']    = date('Y-m-d', strtotime($data['txn_date']));
         $data['doc_number'] ??= null;
 
-        $jeRepo  = new QboJournalEntryRepository($this->pdo);
-        $jeItemRepo  = new QboJournalEntryLineRepository($this->pdo);
+        $jeRepo     = new QboJournalEntryRepository($this->pdo);
+        $jeItemRepo = new QboJournalEntryLineRepository($this->pdo);
 
         $client = new JournalEntryClient(
             $this->baseUrl,
@@ -307,6 +349,12 @@ class QuickBooksManager
 
         return $service->create($data);
     }
+
+    /**
+     * -------------------------
+     * Vendors
+     * -------------------------
+     */
     public function createVendor(array $data): object
     {
         VendorValidator::validate($data);
@@ -340,6 +388,50 @@ class QuickBooksManager
         return $client->getAll();
     }
 
+    /**
+     * -------------------------
+     * Classes
+     * -------------------------
+     */
+    public function createClass(array $data): object
+    {
+        ClassValidator::validate($data);
+
+        $data['active'] ??= true;
+
+        $classRepo = new QboClassRepository($this->pdo);
+
+        $client = new ClassClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new ClassSyncService(
+            $classRepo,
+            $client
+        );
+
+        return $service->create($data);
+    }
+
+    public function getAllClasses()
+    {
+        $client = new ClassClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+        return $client->getAll();
+    }
+
+    /**
+     * -------------------------
+     * Bills
+     * -------------------------
+     */
     public function createBill(array $data): object
     {
         BillValidator::validate($data);
@@ -377,31 +469,6 @@ class QuickBooksManager
         return $service->create($data);
     }
 
-    /**
-     * Pull all active tax codes from QBO and store locally.
-     * Run this once during setup, or periodically to stay in sync.
-     * Tax codes (VAT, EXEMPT, ZERO-RATED etc.) are managed in QBO — not created here.
-     */
-    public function syncTaxCodes(int $qboCompanyId): array
-    {
-        $taxCodeRepo = new QboTaxCodeRepository($this->pdo);
-
-        $client = new TaxCodeClient(
-            $this->baseUrl,
-            $this->companyId,
-            $this->auth,
-            $this->http
-        );
-
-        $service = new TaxCodeSyncService($taxCodeRepo, $client);
-
-        return $service->sync($qboCompanyId);
-    }
-
-    /**
-     * Pull all Bills from QuickBooks Online.
-     * Returns the raw QBO QueryResponse object.
-     */
     public function getAllBills(int $maxResults = 1000, int $startPosition = 1): object
     {
         $client = new BillClient(
@@ -414,6 +481,11 @@ class QuickBooksManager
         return $client->getAll($maxResults, $startPosition);
     }
 
+    /**
+     * -------------------------
+     * Bill Payments
+     * -------------------------
+     */
     public function createBillPayment(array $data): object
     {
         if (empty($data['qbo_company_id'])) {
@@ -435,22 +507,41 @@ class QuickBooksManager
             $this->http
         );
 
-        // Create the bill payment in QuickBooks
         $response = $client->create($data);
 
-        // Return a standardized response format
         if (isset($response->BillPayment)) {
             return (object)[
                 'status' => 'synced',
                 'qbo_id' => $response->BillPayment->Id,
-                'data' => $response->BillPayment
-            ];
-        } else {
-            return (object)[
-                'status' => 'failed',
-                'error' => 'Invalid response from QuickBooks'
+                'data'   => $response->BillPayment
             ];
         }
+
+        return (object)[
+            'status' => 'failed',
+            'error'  => 'Invalid response from QuickBooks'
+        ];
+    }
+
+    /**
+     * -------------------------
+     * Tax Codes
+     * -------------------------
+     */
+    public function syncTaxCodes(int $qboCompanyId): array
+    {
+        $taxCodeRepo = new QboTaxCodeRepository($this->pdo);
+
+        $client = new TaxCodeClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new TaxCodeSyncService($taxCodeRepo, $client);
+
+        return $service->sync($qboCompanyId);
     }
 
     /**
@@ -513,13 +604,11 @@ class QuickBooksManager
             $this->http
         );
 
-        // Get all accounts and filter for bank accounts
-        $allAccounts = $client->getAll();
-
+        $allAccounts  = $client->getAll();
         $bankAccounts = [];
+
         if (isset($allAccounts->QueryResponse->Account)) {
             foreach ($allAccounts->QueryResponse->Account as $account) {
-                // Filter for bank account types
                 if (
                     in_array($account->AccountType, ['Bank', 'Other Current Asset']) &&
                     in_array($account->AccountSubType, ['Checking', 'Savings', 'MoneyMarket', 'CashOnHand'])
@@ -539,27 +628,24 @@ class QuickBooksManager
     public function syncBankAccountsToLocal(): array
     {
         try {
-            // Get all bank accounts from QuickBooks
             $qboBankAccounts = $this->getAllBankAccounts();
 
-            $results = [];
+            $results       = [];
             $success_count = 0;
-            $error_count = 0;
+            $error_count   = 0;
 
             if (isset($qboBankAccounts->QueryResponse->Account)) {
                 foreach ($qboBankAccounts->QueryResponse->Account as $account) {
                     try {
-                        // Check if this bank account already exists in our local table
                         $stmt = $this->pdo->prepare("
                             SELECT id FROM qbo_bank 
                             WHERE qbo_company_id = ? AND qbo_account_id = ?
                         ");
-                        $stmt->execute([1, $account->Id]); // Assuming company ID 1
+                        $stmt->execute([1, $account->Id]);
 
                         $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 
                         if ($existing) {
-                            // Update existing record
                             $updateStmt = $this->pdo->prepare("
                                 UPDATE qbo_bank SET
                                     name = ?,
@@ -579,18 +665,17 @@ class QuickBooksManager
                                 $account->AccountSubType ?? null,
                                 $account->CurrentBalance ?? 0.00,
                                 $account->SyncToken ?? null,
-                                1, // company_id
+                                1,
                                 $account->Id
                             ]);
 
                             $results[] = [
                                 'qbo_account_id' => $account->Id,
-                                'name' => $account->Name,
-                                'action' => 'updated',
-                                'success' => true
+                                'name'           => $account->Name,
+                                'action'         => 'updated',
+                                'success'        => true
                             ];
                         } else {
-                            // Insert new record
                             $insertStmt = $this->pdo->prepare("
                                 INSERT INTO qbo_bank (
                                     qbo_company_id, qbo_account_id, name, account_type, 
@@ -599,7 +684,7 @@ class QuickBooksManager
                             ");
 
                             $insertStmt->execute([
-                                1, // company_id
+                                1,
                                 $account->Id,
                                 $account->Name,
                                 $account->AccountType ?? null,
@@ -610,9 +695,9 @@ class QuickBooksManager
 
                             $results[] = [
                                 'qbo_account_id' => $account->Id,
-                                'name' => $account->Name,
-                                'action' => 'created',
-                                'success' => true
+                                'name'           => $account->Name,
+                                'action'         => 'created',
+                                'success'        => true
                             ];
                         }
 
@@ -620,10 +705,10 @@ class QuickBooksManager
                     } catch (\Exception $e) {
                         $results[] = [
                             'qbo_account_id' => $account->Id ?? 'unknown',
-                            'name' => $account->Name ?? 'unknown',
-                            'action' => 'failed',
-                            'success' => false,
-                            'error' => $e->getMessage()
+                            'name'           => $account->Name ?? 'unknown',
+                            'action'         => 'failed',
+                            'success'        => false,
+                            'error'          => $e->getMessage()
                         ];
                         $error_count++;
                     }
@@ -635,9 +720,9 @@ class QuickBooksManager
                 'message' => "Synced bank accounts. Success: $success_count, Errors: $error_count",
                 'results' => $results,
                 'summary' => [
-                    'total' => count($results),
+                    'total'   => count($results),
                     'success' => $success_count,
-                    'errors' => $error_count
+                    'errors'  => $error_count
                 ]
             ];
         } catch (\Exception $e) {
@@ -647,5 +732,159 @@ class QuickBooksManager
                 'results' => []
             ];
         }
+    }
+
+    /**
+     * -------------------------
+     * Items (Products / Services / Categories)
+     * -------------------------
+     */
+
+    /**
+     * Create an Item locally and sync to QuickBooks Online.
+     */
+    public function createItem(array $data): object
+    {
+        if (empty($data['qbo_company_id'])) {
+            throw new \InvalidArgumentException('qbo_company_id is required');
+        }
+
+        if (empty($data['name'])) {
+            throw new \InvalidArgumentException('Item name is required');
+        }
+
+        $itemRepo  = new QboItemRepository($this->pdo);
+        $classRepo = new QboClassRepository($this->pdo);
+
+        $client = new ItemClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new ItemSyncService(
+            $itemRepo,
+            $classRepo,
+            $client
+        );
+
+        return $service->create($data);
+    }
+
+    /**
+     * Retrieve a single Item from QuickBooks by QBO ID.
+     */
+    public function getItem(string $id): object
+    {
+        $client = new ItemClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getById($id);
+    }
+
+    /**
+     * Retrieve all Items from QuickBooks Online.
+     */
+    public function getAllItems(int $maxResults = 1000, int $startPosition = 1): object
+    {
+        $client = new ItemClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getAll($maxResults, $startPosition);
+    }
+
+    /**
+     * Retrieve all Items of a specific type from QuickBooks Online.
+     * Types: Service, Inventory, NonInventory, Category, Group, Fixed Asset
+     */
+    public function getItemsByType(string $type, int $maxResults = 1000, int $startPosition = 1): object
+    {
+        $client = new ItemClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getAllByType($type, $maxResults, $startPosition);
+    }
+
+    /**
+     * Search for an Item by name in QuickBooks Online.
+     */
+    public function searchItem(string $name): object
+    {
+        $client = new ItemClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->searchByName($name);
+    }
+
+    /**
+     * Deactivate an Item in QuickBooks Online (soft delete).
+     */
+    public function deactivateItem(string $qboId, string $syncToken): object
+    {
+        $client = new ItemClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->deactivate($qboId, $syncToken);
+    }
+
+    /**
+     * Pull all Items from QuickBooks Online and store locally.
+     * Run during setup or periodically to keep local items in sync.
+     */
+    public function syncItems(int $qboCompanyId): array
+    {
+        $itemRepo  = new QboItemRepository($this->pdo);
+        $classRepo = new QboClassRepository($this->pdo);
+
+        $client = new ItemClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new ItemSyncService(
+            $itemRepo,
+            $classRepo,
+            $client
+        );
+
+        return $service->sync($qboCompanyId);
+    }
+
+    /**
+     * Update an existing Item in QuickBooks Online (sparse update).
+     */
+    public function updateItem(string $qboId, string $syncToken, array $data): object
+    {
+        $client = new ItemClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->update($qboId, $syncToken, $data);
     }
 }
