@@ -16,6 +16,7 @@ use ExcelleInsights\QuickBooks\Client\ClassClient;
 use ExcelleInsights\QuickBooks\Client\BillClient;
 use ExcelleInsights\QuickBooks\Client\BillPaymentClient;
 use ExcelleInsights\QuickBooks\Client\TaxCodeClient;
+use ExcelleInsights\QuickBooks\Client\ExpenseClient;
 use ExcelleInsights\QuickBooks\Client\ItemClient;
 
 use ExcelleInsights\QuickBooks\Contracts\HttpClientInterface;
@@ -33,6 +34,8 @@ use ExcelleInsights\QuickBooks\Repositories\QboClassRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboBillRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboBillItemRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboTaxCodeRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboExpenseRepository;
+use ExcelleInsights\QuickBooks\Repositories\QboExpenseItemRepository;
 use ExcelleInsights\QuickBooks\Repositories\QboItemRepository;
 
 use ExcelleInsights\QuickBooks\Services\CustomerSyncService;
@@ -44,12 +47,14 @@ use ExcelleInsights\QuickBooks\Services\VendorSyncService;
 use ExcelleInsights\QuickBooks\Services\ClassSyncService;
 use ExcelleInsights\QuickBooks\Services\BillSyncService;
 use ExcelleInsights\QuickBooks\Services\TaxCodeSyncService;
+use ExcelleInsights\QuickBooks\Services\ExpenseSyncService;
 use ExcelleInsights\QuickBooks\Services\ItemSyncService;
 
 use ExcelleInsights\QuickBooks\Validation\JournalEntryValidator;
 use ExcelleInsights\QuickBooks\Validation\VendorValidator;
 use ExcelleInsights\QuickBooks\Validation\ClassValidator;
 use ExcelleInsights\QuickBooks\Validation\BillValidator;
+use ExcelleInsights\QuickBooks\Validation\ExpenseValidator;
 
 /**
  * Facade for QuickBooks integration
@@ -537,6 +542,52 @@ class QuickBooksManager
         $service = new TaxCodeSyncService($taxCodeRepo, $client);
 
         return $service->sync($qboCompanyId);
+    }
+
+    /**
+     * -------------------------
+     * Expenses (direct procurement)
+     * -------------------------
+     */
+    public function createExpense(array $data): object
+    {
+        ExpenseValidator::validate($data);
+
+        $expenseRepo     = new QboExpenseRepository($this->pdo);
+        $expenseItemRepo = new QboExpenseItemRepository($this->pdo);
+        $vendorRepo      = new QboVendorRepository($this->pdo);
+        $classRepo       = new QboClassRepository($this->pdo);
+        $taxCodeRepo     = new QboTaxCodeRepository($this->pdo);
+
+        $client = new ExpenseClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new ExpenseSyncService(
+            $expenseRepo,
+            $expenseItemRepo,
+            $vendorRepo,
+            $classRepo,
+            $taxCodeRepo,
+            $client
+        );
+
+        return $service->create($data);
+    }
+
+    public function getAllExpenses(int $maxResults = 1000, int $startPosition = 1): object
+    {
+        $client = new ExpenseClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getAll($maxResults, $startPosition);
     }
 
     /**
