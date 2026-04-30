@@ -148,4 +148,14 @@ class QboPaymentRepository
 
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
+    /**
+     * Find by local_id
+     */
+    public function findByLocalId(int $localId): ?object
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM qbo_payments WHERE local_id = ?");
+        $stmt->execute([$localId]);
+
+        return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
+    }
 }

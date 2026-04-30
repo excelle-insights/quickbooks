@@ -184,4 +184,18 @@ class QboCustomerRepository
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+    /**
+     * Get all synced customers (those with a valid qbo_id)
+     */
+    public function getAllSynced(int $qboCompanyId = 1): array
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT * FROM qbo_customers
+            WHERE qbo_id IS NOT NULL AND status = 'synced' AND qbo_company_id = ?
+            ORDER BY id ASC
+        ");
+        $stmt->execute([$qboCompanyId]);
+
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
 }
