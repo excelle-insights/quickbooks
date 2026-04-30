@@ -127,6 +127,16 @@ class QboInvoiceRepository
 
         return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
     }
+    /**
+     * Find by local_id (the original invoice_id from the invoices table)
+     */
+    public function findByLocalId(int $localId): ?object
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM qbo_invoices WHERE local_id = ?");
+        $stmt->execute([$localId]);
+
+        return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
+    }
 
     /**
      * Invoices pending sync
