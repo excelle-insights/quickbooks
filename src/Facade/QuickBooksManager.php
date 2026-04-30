@@ -887,4 +887,42 @@ class QuickBooksManager
 
         return $client->update($qboId, $syncToken, $data);
     }
+    /**
+     * Get invoices with outstanding balances for a specific customer (by QBO ID)
+     */
+    public function getInvoicesWithBalanceByCustomer(string $customerQboId): object
+    {
+        $client = new InvoiceClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getByCustomerWithBalance($customerQboId);
+    }
+
+    /**
+     * Get all payments for a specific customer (by QBO ID)
+     */
+    public function getPaymentsByCustomer(string $customerQboId): object
+    {
+        $client = new PaymentClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getByCustomer($customerQboId);
+    }
+
+    /**
+     * Get all synced customers
+     */
+    public function getSyncedCustomers(int $qboCompanyId = 1): array
+    {
+        $repo = new QboCustomerRepository($this->pdo);
+        return $repo->getAllSynced($qboCompanyId);
+    }
 }
