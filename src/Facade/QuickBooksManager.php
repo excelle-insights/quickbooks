@@ -888,6 +888,20 @@ class QuickBooksManager
         return $client->update($qboId, $syncToken, $data);
     }
     /**
+     * Get invoices for a specific customer (by QBO ID)
+     */
+    public function getInvoicesByCustomer(string $customerQboId): object
+    {
+        $client = new InvoiceClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getByCustomer($customerQboId);
+    }
+    /**
      * Get invoices with outstanding balances for a specific customer (by QBO ID)
      */
     public function getInvoicesWithBalanceByCustomer(string $customerQboId): object
