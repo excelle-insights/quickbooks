@@ -939,4 +939,27 @@ class QuickBooksManager
         $repo = new QboCustomerRepository($this->pdo);
         return $repo->getAllSynced($qboCompanyId);
     }
+    public function getInvoicesByCustomerAfterDate(string $customerQboId, string $afterDate): object
+    {
+        $client = new InvoiceClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getByCustomerAfterDate($customerQboId, $afterDate);
+    }
+
+    public function getPaymentsByCustomerAfterDate(string $customerQboId, string $afterDate): object
+    {
+        $client = new PaymentClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getByCustomerAfterDate($customerQboId, $afterDate);
+    }
 }

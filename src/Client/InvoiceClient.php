@@ -63,6 +63,14 @@ class InvoiceClient extends BaseClient
         return $this->sendRequest('GET', $this->endpoint('query?query=' . rawurlencode($query)));
     }
     /**
+     * Get all invoices for a customer after a specific date
+     */
+    public function getByCustomerAfterDate(string $customerQboId, string $afterDate, int $maxResults = 1000, int $startPosition = 1): object
+    {
+        $query = "SELECT * FROM Invoice WHERE CustomerRef = '$customerQboId' AND TxnDate >= '$afterDate' STARTPOSITION $startPosition MAXRESULTS $maxResults";
+        return $this->sendRequest('GET', $this->endpoint('query?query=' . rawurlencode($query)));
+    }
+    /**
      * Search invoice by DocNumber
      */
     public function search(string $invoiceNumber): object
