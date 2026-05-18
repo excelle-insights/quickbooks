@@ -40,7 +40,7 @@ final class CreateQboExpensesTables extends AbstractMigration
          */
         if (!$this->hasTable($prefix . '_expense_items')) {
             $this->table($prefix . '_expense_items')
-                ->addColumn('expense_id',      'integer', ['null' => false, 'comment' => 'References qbo_expenses.id'])
+                ->addColumn('expense_id',      'integer', ['null' => false, 'signed' => false,'comment' => 'References \'' . $prefix . '_expenses.id'])
                 ->addForeignKey('expense_id', $prefix . '_expenses', 'id', ['delete' => 'CASCADE'])
                 ->create();
         }
