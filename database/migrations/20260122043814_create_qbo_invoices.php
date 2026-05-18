@@ -22,6 +22,10 @@ final class CreateQboInvoices extends AbstractMigration
         $prefix = $_ENV['QBO_TABLE_PREFIX'] ?? 'qbo';
         $table = $this->table($prefix . '_invoices');
 
+        if ($table->exists()) {
+            return;
+        }
+        
         $table
             ->addColumn('qbo_company_id', 'integer', [
                 'null' => false,

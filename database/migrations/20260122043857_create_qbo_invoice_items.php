@@ -22,6 +22,10 @@ final class CreateQboInvoiceItems extends AbstractMigration
         $prefix = $_ENV['QBO_TABLE_PREFIX'] ?? 'qbo';
         $table = $this->table($prefix . '_invoice_items');
 
+        if ($table->exists()) {
+            return;
+        }
+        
         $table
             ->addColumn('invoice_id', 'integer', [
                 'null' => false,
