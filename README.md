@@ -4,6 +4,42 @@ A PHP package to integrate with **QuickBooks Online (QBO)**, including authentic
 
 ---
 
+## Project Structure
+
+```
+src/
+├── Auth/              # OAuth2 token handling
+│   └── Authentication.php
+├── Client/            # HTTP clients per QBO entity (13 files)
+│   ├── BaseClient.php
+│   ├── CustomerClient.php
+│   ├── InvoiceClient.php
+│   └── ...
+├── Config/            # QBO SDK configuration
+│   └── QboConfig.php
+├── Contracts/         # Interfaces for DI
+│   ├── HttpClientInterface.php
+│   └── LoggerInterface.php
+├── Controller/        # OAuth callback handling
+│   └── OAuthController.php
+├── Entities/          # Domain models
+│   └── Customer.php
+├── Facade/            # Main entry point
+│   └── QuickBooksManager.php
+├── Repositories/      # DB persistence layer (17 repos)
+│   ├── TokenRepository.php
+│   └── ...
+├── Resources/views/   # HTML connect button view
+├── Services/          # Sync logic (local → QBO)
+│   ├── CustomerSyncService.php
+│   └── ...
+├── Support/           # Utilities: EnvLoader, DatabaseLogger, DefaultHttpClient
+├── Utils/             # VendorNameGenerator.php
+└── Validation/        # Input validators
+    ├── BillValidator.php
+    └── ...
+```
+
 ## Installation
 
 You can install the package via Composer:
