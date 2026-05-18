@@ -19,9 +19,10 @@ final class CreateQboClassesTable extends AbstractMigration
      */
     public function change(): void
     {
-        if (!$this->hasTable('qbo_classes')) {
+        $prefix = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo');
+        if (!$this->hasTable($prefix . '_classes')) {
 
-            $this->table('qbo_classes')
+            $this->table($prefix . '_classes')
                 ->addColumn('qbo_company_id', 'integer', ['null' => false])
 
                 // Core fields

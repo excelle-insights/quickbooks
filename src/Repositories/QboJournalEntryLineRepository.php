@@ -6,7 +6,12 @@ use PDO;
 
 class QboJournalEntryLineRepository
 {
-    public function __construct(private PDO $pdo) {}
+    private string $table;
+
+    public function __construct(private PDO $pdo)
+    {
+        $this->table = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_journal_entry_lines';
+    }
 
     /**
      * Add a line to a journal entry
@@ -14,7 +19,7 @@ class QboJournalEntryLineRepository
     public function create(int $journalEntryId, array $data): int
     {
         $stmt = $this->pdo->prepare("
-            INSERT INTO qbo_journal_entry_lines (
+            INSERT INTO {$this->table} (
                 journal_entry_id,
                 account_qbo_id,
                 account_name,
@@ -47,7 +52,7 @@ class QboJournalEntryLineRepository
     {
         $stmt = $this->pdo->prepare("
             SELECT *
-            FROM qbo_journal_entry_lines
+            FROM {$this->table}
             WHERE journal_entry_id = ?
             ORDER BY id ASC
         ");
@@ -64,7 +69,7 @@ class QboJournalEntryLineRepository
     public function deleteByJournalEntry(int $journalEntryId): void
     {
         $stmt = $this->pdo->prepare("
-            DELETE FROM qbo_journal_entry_lines
+            DELETE FROM {$this->table}
             WHERE journal_entry_id = ?
         ");
 

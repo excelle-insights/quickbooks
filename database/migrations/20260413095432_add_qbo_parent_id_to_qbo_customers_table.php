@@ -19,7 +19,7 @@ final class AddQboParentIdToQboCustomersTable extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table('qbo_customers');
+        $table = $this->table(($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_customers');
         $table->changeColumn('parent_id', 'integer', ['null' => true, 'after' => 'qbo_id', 'comment' => 'Parent Customer ID (local)']);
         if (!$table->hasColumn('qbo_parent_id')) {
             $table->addColumn('qbo_parent_id', 'string', ['null' => true, 'after' => 'qbo_id', 'comment' => 'QuickBooks Parent Customer ID'])

@@ -6,7 +6,12 @@ use PDO;
 
 class QboJournalEntryRepository
 {
-    public function __construct(private PDO $pdo) {}
+    private string $table;
+
+    public function __construct(private PDO $pdo)
+    {
+        $this->table = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_journal_entries';
+    }
 
     /**
      * Create a local journal entry header (before QBO sync)
@@ -14,7 +19,7 @@ class QboJournalEntryRepository
     public function create(array $data): int
     {
         $stmt = $this->pdo->prepare("
-            INSERT INTO qbo_journal_entries (
+            INSERT INTO {$this->table} (
                 qbo_company_id,
                 txn_date,
                 doc_number,
@@ -46,7 +51,7 @@ class QboJournalEntryRepository
         string $syncToken
     ): void {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_journal_entries
+            UPDATE {$this->table}
             SET
                 qbo_id = ?,
                 sync_token = ?,
@@ -65,7 +70,7 @@ class QboJournalEntryRepository
     public function markFailed(int $id, string $error): void
     {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_journal_entries
+            UPDATE {$this->table}
             SET
                 status = 'failed',
                 retry_count = retry_count + 1,
@@ -87,7 +92,7 @@ class QboJournalEntryRepository
     public function find(int $id): ?object
     {
         $stmt = $this->pdo->prepare(
-            "SELECT * FROM qbo_journal_entries WHERE id = ?"
+            "SELECT * FROM {$this->table} WHERE id = ?"
         );
         $stmt->execute([$id]);
 
@@ -100,7 +105,7 @@ class QboJournalEntryRepository
     public function findByQboId(string $qboId): ?object
     {
         $stmt = $this->pdo->prepare(
-            "SELECT * FROM qbo_journal_entries WHERE qbo_id = ?"
+            "SELECT * FROM {$this->table} WHERE qbo_id = ?"
         );
         $stmt->execute([$qboId]);
 
@@ -114,7 +119,7 @@ class QboJournalEntryRepository
     {
         $stmt = $this->pdo->prepare("
             SELECT *
-            FROM qbo_journal_entries
+            FROM {$this->table}
             WHERE status IN ('pending', 'failed')
               AND retry_count < :maxRetries
             ORDER BY last_attempt_at ASC

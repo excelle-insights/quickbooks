@@ -19,7 +19,7 @@ final class AddNameFieldsToQboCustomersTable extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table('qbo_customers');
+        $table = $this->table(($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_customers');
         $table->addColumn('first_name', 'string', ['null' => true, 'after' => 'display_name'])
               ->addColumn('middle_name', 'string', ['null' => true, 'after' => 'first_name'])
               ->addColumn('last_name', 'string', ['null' => true, 'after' => 'middle_name'])

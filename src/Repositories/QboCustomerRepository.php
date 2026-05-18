@@ -6,7 +6,12 @@ use PDO;
 
 class QboCustomerRepository
 {
-    public function __construct(private PDO $pdo) {}
+    private string $table;
+
+    public function __construct(private PDO $pdo)
+    {
+        $this->table = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_customers';
+    }
 
     /**
      * Insert local customer (before QBO sync)
@@ -14,7 +19,7 @@ class QboCustomerRepository
     public function create(array $data): int
     {
         $stmt = $this->pdo->prepare("
-            INSERT INTO qbo_customers (
+            INSERT INTO {$this->table} (
                 local_id,
                 qbo_company_id,
                 parent_id,
@@ -73,7 +78,7 @@ class QboCustomerRepository
         string $syncToken
     ): void {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_customers
+            UPDATE {$this->table}
             SET qbo_id = ?, sync_token = ?, status = ?, last_attempt_at = NOW()
             WHERE id = ?
         ");
@@ -83,7 +88,7 @@ class QboCustomerRepository
     public function markFailed(int $id, string $error): void
     {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_customers
+            UPDATE {$this->table}
             SET status = 'failed',
                 retry_count = retry_count + 1,
                 last_attempt_at = NOW(),
@@ -99,7 +104,7 @@ class QboCustomerRepository
     public function update(int $id, array $data): void
     {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_customers
+            UPDATE {$this->table}
             SET
                 name = ?,
                 display_name = ?,
@@ -148,7 +153,7 @@ class QboCustomerRepository
     public function find(int $id): ?object
     {
         $stmt = $this->pdo->prepare(
-            "SELECT * FROM qbo_customers WHERE id = ?"
+            "SELECT * FROM {$this->table} WHERE id = ?"
         );
         $stmt->execute([$id]);
 
@@ -161,7 +166,7 @@ class QboCustomerRepository
     public function findByQboId(string $qboId): ?object
     {
         $stmt = $this->pdo->prepare(
-            "SELECT * FROM qbo_customers WHERE qbo_id = ?"
+            "SELECT * FROM {$this->table} WHERE qbo_id = ?"
         );
         $stmt->execute([$qboId]);
 
@@ -175,7 +180,7 @@ class QboCustomerRepository
     {
         $stmt = $this->pdo->prepare("
         SELECT *
-        FROM qbo_customers
+        FROM {$this->table}
         WHERE status IN ('pending','failed')
           AND retry_count < :maxRetries
         ORDER BY last_attempt_at ASC
@@ -190,7 +195,7 @@ class QboCustomerRepository
     public function getAllSynced(int $qboCompanyId = 1): array
     {
         $stmt = $this->pdo->prepare("
-            SELECT * FROM qbo_customers
+            SELECT * FROM {$this->table}
             WHERE qbo_id IS NOT NULL AND status = 'synced' AND qbo_company_id = ?
             ORDER BY id ASC
         ");

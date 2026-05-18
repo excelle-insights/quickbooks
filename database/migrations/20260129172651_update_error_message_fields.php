@@ -19,11 +19,12 @@ final class UpdateErrorMessageFields extends AbstractMigration
      */
     public function change(): void
     {  
-        $this->table('qbo_customers')
+        $prefix = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo');
+        $this->table($prefix . '_customers')
             ->changeColumn('error_message', 'text')
             ->update();
 
-        $this->table('qbo_invoices')
+        $this->table($prefix . '_invoices')
             ->changeColumn('error_message', 'text')
             ->update();
     }

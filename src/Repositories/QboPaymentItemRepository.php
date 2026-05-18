@@ -6,8 +6,11 @@ use PDO;
 
 class QboPaymentItemRepository
 {
+    private string $table;
+
     public function __construct(private PDO $pdo)
     {
+        $this->table = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_payment_items';
     }
 
     /**
@@ -16,7 +19,7 @@ class QboPaymentItemRepository
     public function create(array $data): void
     {
         $stmt = $this->pdo->prepare("
-            INSERT INTO qbo_payment_items
+            INSERT INTO {$this->table}
             (qbo_payment_id, qbo_invoice_id, amount, created_at)
             VALUES
             (:qbo_payment_id, :qbo_invoice_id, :amount, NOW())
@@ -37,7 +40,7 @@ class QboPaymentItemRepository
     public function getByPaymentId(int $paymentId): array
     {
         $stmt = $this->pdo->prepare("
-            SELECT * FROM qbo_payment_items WHERE qbo_payment_id = :qbo_payment_id
+            SELECT * FROM {$this->table} WHERE qbo_payment_id = :qbo_payment_id
         ");
         $stmt->execute([':qbo_payment_id' => $paymentId]);
 

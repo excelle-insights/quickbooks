@@ -19,7 +19,7 @@ final class AddSyncTokenToQboPaymentsTable extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table('qbo_payments');
+        $table = $this->table(($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_payments');
         if (!$table->hasColumn('sync_token')) {
             $table
                 ->addColumn('sync_token', 'string', [

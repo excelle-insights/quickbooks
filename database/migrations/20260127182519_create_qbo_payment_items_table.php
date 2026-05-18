@@ -19,11 +19,12 @@ final class CreateQboPaymentItemsTable extends AbstractMigration
      */
     public function change(): void
     {
-        if ($this->hasTable('qbo_payment_items')) {
+        $prefix = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo');
+        if ($this->hasTable($prefix . '_payment_items')) {
             return;
         }
 
-        $this->table('qbo_payment_items')
+        $this->table($prefix . '_payment_items')
             ->addColumn('qbo_payment_id', 'integer', ['signed' => false]) // FK → qbo_payments.id
 
             ->addColumn('qbo_invoice_id', 'string')
@@ -41,7 +42,7 @@ final class CreateQboPaymentItemsTable extends AbstractMigration
 
             ->addForeignKey(
                 'qbo_payment_id',
-                'qbo_payments',
+                $prefix . '_payments',
                 'id',
                 [
                     'delete' => 'CASCADE',

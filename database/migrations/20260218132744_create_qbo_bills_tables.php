@@ -19,13 +19,14 @@ final class CreateQboBillsTables extends AbstractMigration
      */
     public function change(): void
     {
+        $prefix = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo');
         /**
          * ------------------------------
          * qbo_bills
          * ------------------------------
          */
-        if (!$this->hasTable('qbo_bills')) {
-            $this->table('qbo_bills')
+        if (!$this->hasTable($prefix . '_bills')) {
+            $this->table($prefix . '_bills')
                 ->addColumn('qbo_company_id', 'integer', ['null' => false])
                 ->addColumn('qbo_vendor_id', 'integer', ['null' => false, 'comment' => 'References qbo_vendors.id'])
                 ->addColumn('txn_date', 'date', ['null' => true])
@@ -51,8 +52,8 @@ final class CreateQboBillsTables extends AbstractMigration
          * qbo_bill_items
          * ------------------------------
          */
-        if (!$this->hasTable('qbo_bill_items')) {
-            $this->table('qbo_bill_items')
+        if (!$this->hasTable($prefix . '_bill_items')) {
+            $this->table($prefix . '_bill_items')
                 ->addColumn('bill_id', 'integer', ['null' => false, 'signed' => false, 'comment' => 'References qbo_bills.id'])
                 ->addColumn('account_qbo_id', 'string', ['null' => false, 'comment' => 'QuickBooks Online Account ID'])
                 ->addColumn('amount', 'decimal', [
@@ -64,7 +65,7 @@ final class CreateQboBillsTables extends AbstractMigration
                 ->addTimestamps()
                 ->addForeignKey(
                     'bill_id',
-                    'qbo_bills',
+                    $prefix . '_bills',
                     'id',
                     ['delete' => 'CASCADE']
                 )
