@@ -105,10 +105,12 @@ if (!file_exists($phinxPath)) {
  * 3️⃣ Generate temporary Phinx config
  * ------------------------------------------------------------
  */
+$prefix = $_ENV['QBO_TABLE_PREFIX'] ?? 'qbo';
 $tempConfig = sys_get_temp_dir() . '/quickbooks_phinx_' . uniqid() . '.php';
 
 file_put_contents($tempConfig, <<<PHP
 <?php
+\$_ENV['QBO_TABLE_PREFIX'] = '{$prefix}';
 return [
     'paths' => [
         'migrations' => '{$migrationsDir}',
