@@ -19,7 +19,7 @@ final class AddQboCompanyIdToPaymentsTable extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table('qbo_payments');
+        $table = $this->table(($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_payments');
         if(!$table->hasColumn('qbo_company_id')) {
             $table->addColumn('qbo_company_id', 'integer', [
                     'signed' => false,

@@ -19,11 +19,12 @@ final class CreateQboJournalEntriesTables extends AbstractMigration
      */
     public function change(): void
     {
+        $prefix = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo');
         // ------------------------------
         // 1️⃣ qbo_journal_entries table
         // ------------------------------
-        if (!$this->hasTable('qbo_journal_entries')) {
-            $table = $this->table('qbo_journal_entries');
+        if (!$this->hasTable($prefix . '_journal_entries')) {
+            $table = $this->table($prefix . '_journal_entries');
 
             $table
                 ->addColumn('qbo_company_id', 'integer', ['null' => false, 'after' => 'id'])
@@ -43,8 +44,8 @@ final class CreateQboJournalEntriesTables extends AbstractMigration
         // ------------------------------
         // 2️⃣ qbo_journal_entry_lines table
         // ------------------------------
-        if (!$this->hasTable('qbo_journal_entry_lines')) {
-            $table = $this->table('qbo_journal_entry_lines');
+        if (!$this->hasTable($prefix . '_journal_entry_lines')) {
+            $table = $this->table($prefix . '_journal_entry_lines');
 
             $table
                 ->addColumn('journal_entry_id', 'integer', ['null' => false, 'signed' => false])
@@ -54,7 +55,7 @@ final class CreateQboJournalEntriesTables extends AbstractMigration
                 ->addColumn('credit', 'decimal', ['precision' => 15, 'scale' => 2, 'default' => 0])
                 ->addColumn('description', 'text', ['null' => true])
                 ->addTimestamps()
-                ->addForeignKey('journal_entry_id', 'qbo_journal_entries', 'id', [
+                ->addForeignKey('journal_entry_id', $prefix . '_journal_entries', 'id', [
                     'delete'=> 'CASCADE',
                     'update'=> 'NO_ACTION'
                 ])

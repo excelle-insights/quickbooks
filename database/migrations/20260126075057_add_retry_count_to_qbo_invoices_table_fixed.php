@@ -19,7 +19,7 @@ final class AddRetryCountToQboInvoicesTableFixed extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table('qbo_invoices');
+        $table = $this->table(($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_invoices');
 
         if (!$table->hasColumn('retry_count')) {
             $table->addColumn('retry_count', 'integer', [

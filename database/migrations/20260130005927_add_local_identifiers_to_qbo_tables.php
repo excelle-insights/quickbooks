@@ -19,7 +19,8 @@ final class AddLocalIdentifiersToQboTables extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table('qbo_customers');
+        $prefix = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo');
+        $table = $this->table($prefix . '_customers');
         if (!$table->hasColumn('local_id')) {
             $table->addColumn('local_id', 'integer', [
                 'after' => 'id',
@@ -27,7 +28,7 @@ final class AddLocalIdentifiersToQboTables extends AbstractMigration
             ])->update();
         }
 
-        $table = $this->table('qbo_invoices');
+        $table = $this->table($prefix . '_invoices');
         if (!$table->hasColumn('local_id')) {
             $table->addColumn('local_id', 'integer', [
                 'after' => 'id',
@@ -35,7 +36,7 @@ final class AddLocalIdentifiersToQboTables extends AbstractMigration
             ])->update();
         }
 
-        $table = $this->table('qbo_payments');
+        $table = $this->table($prefix . '_payments');
         if (!$table->hasColumn('local_id')) {
             $table->addColumn('local_id', 'integer', [
                 'after' => 'id',

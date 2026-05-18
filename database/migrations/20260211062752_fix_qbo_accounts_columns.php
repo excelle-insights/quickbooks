@@ -19,11 +19,12 @@ final class FixQboAccountsColumns extends AbstractMigration
      */
     public function change(): void
     {
-        if (!$this->hasTable('qbo_accounts')) {
+        $prefix = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo');
+        if (!$this->hasTable($prefix . '_accounts')) {
             throw new RuntimeException('Table qbo_accounts does not exist.');
         }
 
-        $table = $this->table('qbo_accounts');
+        $table = $this->table($prefix . '_accounts');
 
         // Define columns: type is separate, options contain only Phinx column options
         $columns = [

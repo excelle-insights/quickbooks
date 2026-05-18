@@ -19,7 +19,7 @@ final class ChangeInvoiceIdToQboInvoiceId extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table('qbo_invoice_items');
+        $table = $this->table(($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_invoice_items');
         if($table->hasColumn('invoice_id')) {
             $table->renameColumn('invoice_id', 'qbo_invoice_id')
                 ->update();

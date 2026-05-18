@@ -6,12 +6,17 @@ use PDO;
 
 class QboExpenseItemRepository
 {
-    public function __construct(private PDO $pdo) {}
+    private string $table;
+
+    public function __construct(private PDO $pdo)
+    {
+        $this->table = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_expense_items';
+    }
 
     public function create(array $data): void
     {
         $stmt = $this->pdo->prepare("
-            INSERT INTO qbo_expense_items (
+            INSERT INTO {$this->table} (
                 expense_id,
                 account_qbo_id,
                 qbo_class_id,
@@ -35,14 +40,14 @@ class QboExpenseItemRepository
 
     public function findByExpenseId(int $expenseId): array
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM qbo_expense_items WHERE expense_id = ?");
+        $stmt = $this->pdo->prepare("SELECT * FROM {$this->table} WHERE expense_id = ?");
         $stmt->execute([$expenseId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function deleteByExpenseId(int $expenseId): void
     {
-        $stmt = $this->pdo->prepare("DELETE FROM qbo_expense_items WHERE expense_id = ?");
+        $stmt = $this->pdo->prepare("DELETE FROM {$this->table} WHERE expense_id = ?");
         $stmt->execute([$expenseId]);
     }
 }
