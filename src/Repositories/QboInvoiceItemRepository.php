@@ -6,7 +6,12 @@ use PDO;
 
 class QboInvoiceItemRepository
 {
-    public function __construct(private PDO $pdo) {}
+    private string $table;
+
+    public function __construct(private PDO $pdo)
+    {
+        $this->table = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_invoice_items';
+    }
 
     /**
      * Insert a local invoice line item
@@ -14,7 +19,7 @@ class QboInvoiceItemRepository
     public function create(array $data): void
     {
         $stmt = $this->pdo->prepare("
-            INSERT INTO qbo_invoice_items (
+            INSERT INTO {$this->table} (
                 qbo_invoice_id,
                 qbo_class_id,
                 qbo_item_id,
@@ -47,7 +52,7 @@ class QboInvoiceItemRepository
     {
         $stmt = $this->pdo->prepare("
             SELECT description, quantity, unit_price, amount
-            FROM qbo_invoice_items
+            FROM {$this->table}
             WHERE qbo_invoice_id = ?
         ");
         $stmt->execute([$invoiceId]);

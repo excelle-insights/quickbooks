@@ -19,7 +19,7 @@ final class CreateQboAccountsTable extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table('qbo_accounts', [
+        $table = $this->table(($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_accounts', [
             'id' => true,
             'signed' => false,
         ]);

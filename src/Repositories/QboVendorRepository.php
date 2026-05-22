@@ -6,7 +6,12 @@ use PDO;
 
 class QboVendorRepository
 {
-    public function __construct(private PDO $pdo) {}
+    private string $table;
+
+    public function __construct(private PDO $pdo)
+    {
+        $this->table = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_vendors';
+    }
 
     /**
      * Create local vendor (pre-sync)
@@ -17,7 +22,7 @@ class QboVendorRepository
         $vendorHash = $this->generateVendorHash($data);
         
         $stmt = $this->pdo->prepare("
-            INSERT INTO qbo_vendors (
+            INSERT INTO {$this->table} (
                 qbo_company_id,
                 display_name,
                 given_name,
@@ -75,7 +80,7 @@ class QboVendorRepository
         string $syncToken
     ): void {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_vendors
+            UPDATE {$this->table}
             SET
                 qbo_id = ?,
                 sync_token = ?,
@@ -94,7 +99,7 @@ class QboVendorRepository
     public function markFailed(int $id, string $error): void
     {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_vendors
+            UPDATE {$this->table}
             SET
                 status = 'failed',
                 retry_count = retry_count + 1,
@@ -113,7 +118,7 @@ class QboVendorRepository
     public function find(int $id): ?object
     {
         $stmt = $this->pdo->prepare(
-            "SELECT * FROM qbo_vendors WHERE id = ?"
+            "SELECT * FROM {$this->table} WHERE id = ?"
         );
         $stmt->execute([$id]);
 
@@ -126,7 +131,7 @@ class QboVendorRepository
     public function findByQboId(string $qboId): ?object
     {
         $stmt = $this->pdo->prepare(
-            "SELECT * FROM qbo_vendors WHERE qbo_id = ?"
+            "SELECT * FROM {$this->table} WHERE qbo_id = ?"
         );
         $stmt->execute([$qboId]);
 
@@ -140,7 +145,7 @@ class QboVendorRepository
     {
         $stmt = $this->pdo->prepare("
             SELECT *
-            FROM qbo_vendors
+            FROM {$this->table}
             WHERE status IN ('pending', 'failed')
               AND retry_count < :maxRetries
             ORDER BY last_attempt_at ASC
@@ -178,7 +183,7 @@ class QboVendorRepository
             return null;
         }
         
-        $sql = "SELECT * FROM qbo_vendors WHERE (" . implode(' OR ', $conditions) . ") AND status = 'synced'";
+        $sql = "SELECT * FROM {$this->table} WHERE (" . implode(' OR ', $conditions) . ") AND status = 'synced'";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
 
@@ -191,7 +196,7 @@ class QboVendorRepository
     public function findByHash(string $hash): ?object
     {
         $stmt = $this->pdo->prepare(
-            "SELECT * FROM qbo_vendors WHERE vendor_hash = ? AND status = 'synced'"
+            "SELECT * FROM {$this->table} WHERE vendor_hash = ? AND status = 'synced'"
         );
         $stmt->execute([$hash]);
 

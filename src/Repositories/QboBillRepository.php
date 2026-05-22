@@ -6,7 +6,12 @@ use PDO;
 
 class QboBillRepository
 {
-    public function __construct(private PDO $pdo) {}
+    private string $table;
+
+    public function __construct(private PDO $pdo)
+    {
+        $this->table = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_bills';
+    }
 
     /**
      * Insert a local bill (before QBO sync)
@@ -14,7 +19,7 @@ class QboBillRepository
     public function create(array $data): int
     {
         $stmt = $this->pdo->prepare("
-            INSERT INTO qbo_bills (
+            INSERT INTO {$this->table} (
                 qbo_company_id,
                 qbo_vendor_id,
                 txn_date,
@@ -41,7 +46,7 @@ class QboBillRepository
     public function markSynced(int $id, string $qboId, string $syncToken): void
     {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_bills
+            UPDATE {$this->table}
             SET qbo_id = ?, sync_token = ?, status = 'synced', last_attempt_at = NOW()
             WHERE id = ?
         ");
@@ -55,7 +60,7 @@ class QboBillRepository
     public function markFailed(int $id, string $error): void
     {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_bills
+            UPDATE {$this->table}
             SET status = 'failed',
                 retry_count = retry_count + 1,
                 last_attempt_at = NOW(),
@@ -71,7 +76,7 @@ class QboBillRepository
      */
     public function find(int $id): ?object
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM qbo_bills WHERE id = ?");
+        $stmt = $this->pdo->prepare("SELECT * FROM {$this->table} WHERE id = ?");
         $stmt->execute([$id]);
 
         return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
@@ -82,7 +87,7 @@ class QboBillRepository
      */
     public function findByQboId(string $qboId): ?object
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM qbo_bills WHERE qbo_id = ?");
+        $stmt = $this->pdo->prepare("SELECT * FROM {$this->table} WHERE qbo_id = ?");
         $stmt->execute([$qboId]);
 
         return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
@@ -95,7 +100,7 @@ class QboBillRepository
     {
         $stmt = $this->pdo->prepare("
             SELECT *
-            FROM qbo_bills
+            FROM {$this->table}
             WHERE status IN ('pending','failed')
               AND retry_count < :maxRetries
             ORDER BY last_attempt_at ASC

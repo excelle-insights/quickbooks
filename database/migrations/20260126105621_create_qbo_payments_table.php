@@ -19,11 +19,12 @@ final class CreateQboPaymentsTable extends AbstractMigration
      */
     public function change(): void
     {
-        if ($this->hasTable('qbo_payments')) {
+        $prefix = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo');
+        if ($this->hasTable($prefix . '_payments')) {
             return;
         }
 
-        $this->table('qbo_payments')
+        $this->table($prefix . '_payments')
             ->addColumn('pay_id', 'integer', ['comment' => 'Holds local id of payment being inserted. Used to check duplicates']) // local payment id
             ->addColumn('qbo_id', 'integer', ['null' => true, 'comment' => 'References Quickbooks Invoice->Id'])
 

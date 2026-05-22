@@ -7,7 +7,7 @@ final class CreateQboCompanies extends AbstractMigration
 {
     public function change(): void
     {
-        $table = $this->table('qbo_companies');
+        $table = $this->table(($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_companies');
         if ($table->exists()) {
             return;
         }

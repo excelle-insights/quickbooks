@@ -19,11 +19,12 @@ final class AddCurrentBalanceToQboAccounts extends AbstractMigration
      */
     public function change(): void
     {
-        if (!$this->hasTable('qbo_accounts')) {
+        $prefix = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo');
+        if (!$this->hasTable($prefix . '_accounts')) {
             return;
         }
         
-        $table = $this->table('qbo_accounts');
+        $table = $this->table($prefix . '_accounts');
         if (!$table->hasColumn('current_balance')) {
             $table->addColumn('current_balance', 'decimal', [
                 'precision' => 15,

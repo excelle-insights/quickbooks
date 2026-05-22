@@ -66,6 +66,7 @@ class QuickBooksManager
     private PDO $pdo;
     private string $baseUrl;
     private string $companyId;
+    private string $bankTable;
     private HttpClientInterface $http;
 
     public function __construct(
@@ -105,6 +106,7 @@ class QuickBooksManager
         }
 
         $this->http = $http;
+        $this->bankTable = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_bank';
 
         $tokenRepo = new TokenRepository($pdo);
         $this->auth = new Authentication(
@@ -638,7 +640,7 @@ class QuickBooksManager
                 foreach ($qboBankAccounts->QueryResponse->Account as $account) {
                     try {
                         $stmt = $this->pdo->prepare("
-                            SELECT id FROM qbo_bank 
+                            SELECT id FROM {$this->bankTable} 
                             WHERE qbo_company_id = ? AND qbo_account_id = ?
                         ");
                         $stmt->execute([1, $account->Id]);
@@ -647,7 +649,7 @@ class QuickBooksManager
 
                         if ($existing) {
                             $updateStmt = $this->pdo->prepare("
-                                UPDATE qbo_bank SET
+                                UPDATE {$this->bankTable} SET
                                     name = ?,
                                     account_type = ?,
                                     account_sub_type = ?,
@@ -677,7 +679,7 @@ class QuickBooksManager
                             ];
                         } else {
                             $insertStmt = $this->pdo->prepare("
-                                INSERT INTO qbo_bank (
+                                INSERT INTO {$this->bankTable} (
                                     qbo_company_id, qbo_account_id, name, account_type, 
                                     account_sub_type, current_balance, sync_token, status
                                 ) VALUES (?, ?, ?, ?, ?, ?, ?, 'synced')
@@ -886,5 +888,80 @@ class QuickBooksManager
         );
 
         return $client->update($qboId, $syncToken, $data);
+    }
+    /**
+     * Get invoices for a specific customer (by QBO ID)
+     */
+    public function getInvoicesByCustomer(string $customerQboId): object
+    {
+        $client = new InvoiceClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getByCustomer($customerQboId);
+    }
+    /**
+     * Get invoices with outstanding balances for a specific customer (by QBO ID)
+     */
+    public function getInvoicesWithBalanceByCustomer(string $customerQboId): object
+    {
+        $client = new InvoiceClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getByCustomerWithBalance($customerQboId);
+    }
+
+    /**
+     * Get all payments for a specific customer (by QBO ID)
+     */
+    public function getPaymentsByCustomer(string $customerQboId): object
+    {
+        $client = new PaymentClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getByCustomer($customerQboId);
+    }
+
+    /**
+     * Get all synced customers
+     */
+    public function getSyncedCustomers(int $qboCompanyId = 1): array
+    {
+        $repo = new QboCustomerRepository($this->pdo);
+        return $repo->getAllSynced($qboCompanyId);
+    }
+    public function getInvoicesByCustomerAfterDate(string $customerQboId, string $afterDate): object
+    {
+        $client = new InvoiceClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getByCustomerAfterDate($customerQboId, $afterDate);
+    }
+
+    public function getPaymentsByCustomerAfterDate(string $customerQboId, string $afterDate): object
+    {
+        $client = new PaymentClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getByCustomerAfterDate($customerQboId, $afterDate);
     }
 }

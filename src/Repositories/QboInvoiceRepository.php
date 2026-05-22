@@ -6,7 +6,12 @@ use PDO;
 
 class QboInvoiceRepository
 {
-    public function __construct(private PDO $pdo) {}
+    private string $table;
+
+    public function __construct(private PDO $pdo)
+    {
+        $this->table = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_invoices';
+    }
 
     /**
      * Create a local invoice (before QBO sync)
@@ -14,7 +19,7 @@ class QboInvoiceRepository
     public function create(array $data): int
     {
         $stmt = $this->pdo->prepare("
-            INSERT INTO qbo_invoices (
+            INSERT INTO {$this->table} (
                 local_id,
                 qbo_company_id,
                 qbo_customer_id,
@@ -63,7 +68,7 @@ class QboInvoiceRepository
         float $total
     ): void {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_invoices
+            UPDATE {$this->table}
             SET
                 qbo_id      = :qbo_id,
                 sync_token  = :sync_token,
@@ -87,7 +92,7 @@ class QboInvoiceRepository
     public function markFailed(int $id, string $reason): void
     {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_invoices
+            UPDATE {$this->table}
             SET
                 status = 'failed',
                 retry_count = retry_count + 1, 
@@ -108,7 +113,7 @@ class QboInvoiceRepository
     public function find(int $id): ?object
     {
         $stmt = $this->pdo->prepare(
-            "SELECT * FROM qbo_invoices WHERE id = ?"
+            "SELECT * FROM {$this->table} WHERE id = ?"
         );
         $stmt->execute([$id]);
 
@@ -121,9 +126,19 @@ class QboInvoiceRepository
     public function findByQboId(string $qboId): ?object
     {
         $stmt = $this->pdo->prepare(
-            "SELECT * FROM qbo_invoices WHERE qbo_id = ?"
+            "SELECT * FROM {$this->table} WHERE qbo_id = ?"
         );
         $stmt->execute([$qboId]);
+
+        return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
+    }
+    /**
+     * Find by local_id (the original invoice_id from the invoices table)
+     */
+    public function findByLocalId(int $localId): ?object
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM {$this->table} WHERE local_id = ?");
+        $stmt->execute([$localId]);
 
         return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
     }
@@ -135,7 +150,7 @@ class QboInvoiceRepository
     {
         $stmt = $this->pdo->prepare("
         SELECT *
-        FROM qbo_invoices
+        FROM {$this->table}
         WHERE status IN ('pending','failed')
           AND retry_count < :maxRetries
         ORDER BY last_attempt_at ASC
@@ -151,7 +166,7 @@ class QboInvoiceRepository
     public function update(int $id, array $data): void
     {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_invoices
+            UPDATE {$this->table}
             SET
                 invoice_number = :invoice_number,
                 txn_date       = :txn_date,

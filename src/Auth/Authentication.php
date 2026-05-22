@@ -42,12 +42,12 @@ class Authentication
         $formatDeadline = date('Y-m-d H:i:s', $deadline);
         $formatCurrentTime = date('Y-m-d H:i:s', $currentTime);
 
-        if ($currentTime < $deadline) {
-            error_log("Access token not expired. Age is $token_age. Current time is $formatCurrentTime, deadline is $formatDeadline");
-            return $token['access_token'];
-        } else {
-            error_log("Access token expired. Age is $token_age.  Current time is $formatCurrentTime, deadline is $formatDeadline");
-        }
+        // if ($currentTime < $deadline) {
+        //     error_log("Access token not expired. Age is $token_age. Current time is $formatCurrentTime, deadline is $formatDeadline");
+        //     return $token['access_token'];
+        // } else {
+        //     error_log("Access token expired. Age is $token_age.  Current time is $formatCurrentTime, deadline is $formatDeadline");
+        // }
 
         // Refresh
         $newToken = $this->refreshToken($token['refresh_token']);

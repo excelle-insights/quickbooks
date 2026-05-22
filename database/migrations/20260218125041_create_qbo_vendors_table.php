@@ -19,11 +19,12 @@ final class CreateQboVendorsTable extends AbstractMigration
      */
     public function change(): void
     {
-        if ($this->hasTable('qbo_vendors')) {
+        $prefix = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo');
+        if ($this->hasTable($prefix . '_vendors')) {
             return;
         }
 
-        $table = $this->table('qbo_vendors');
+        $table = $this->table($prefix . '_vendors');
 
         $table
             ->addColumn('qbo_company_id', 'integer', ['null' => false])

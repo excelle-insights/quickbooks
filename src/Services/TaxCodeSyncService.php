@@ -7,10 +7,14 @@ use ExcelleInsights\QuickBooks\Repositories\QboTaxCodeRepository;
 
 class TaxCodeSyncService
 {
+    private string $taxCodesTable;
+
     public function __construct(
         private QboTaxCodeRepository $taxCodes,
         private TaxCodeClient $qbo
-    ) {}
+    ) {
+        $this->taxCodesTable = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_tax_codes';
+    }
 
     /**
      * Pull all active tax codes from QBO, upsert into qbo_tax_codes,
@@ -134,7 +138,7 @@ class TaxCodeSyncService
         $this->ensureLocalTaxIdColumn($pdo);
 
         // Priority 1: already linked
-        $stmt = $pdo->prepare("SELECT local_tax_id FROM qbo_tax_codes WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT local_tax_id FROM {$this->taxCodesTable} WHERE id = ?");
         $stmt->execute([$qboTaxCodeLocalId]);
         $row = $stmt->fetch(\PDO::FETCH_OBJ);
         if ($row && !empty($row->local_tax_id)) {
@@ -175,7 +179,7 @@ class TaxCodeSyncService
         }
 
         // Stamp local_tax_id back onto qbo_tax_codes row
-        $stmt = $pdo->prepare("UPDATE qbo_tax_codes SET local_tax_id = ? WHERE id = ?");
+        $stmt = $pdo->prepare("UPDATE {$this->taxCodesTable} SET local_tax_id = ? WHERE id = ?");
         $stmt->execute([$localTaxId, $qboTaxCodeLocalId]);
 
         return $localTaxId;
@@ -186,9 +190,9 @@ class TaxCodeSyncService
      */
     private function ensureLocalTaxIdColumn(\PDO $pdo): void
     {
-        $stmt = $pdo->query("SHOW COLUMNS FROM qbo_tax_codes LIKE 'local_tax_id'");
+        $stmt = $pdo->query("SHOW COLUMNS FROM {$this->taxCodesTable} LIKE 'local_tax_id'");
         if ($stmt->rowCount() === 0) {
-            $pdo->exec("ALTER TABLE qbo_tax_codes ADD COLUMN local_tax_id INT NULL DEFAULT NULL AFTER qbo_id");
+            $pdo->exec("ALTER TABLE {$this->taxCodesTable} ADD COLUMN local_tax_id INT NULL DEFAULT NULL AFTER qbo_id");
         }
     }
 }

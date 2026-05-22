@@ -19,7 +19,7 @@ final class UpdateQboCustomersTable extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table('qbo_customers');
+        $table = $this->table(($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_customers');
 
         // Add columns if they don't exist
         if (!$table->hasColumn('qbo_company_id')) {

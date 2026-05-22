@@ -19,17 +19,22 @@ final class CreateQboInvoices extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo'.'_invoices');
+        $prefix = $_ENV['QBO_TABLE_PREFIX'] ?? 'qbo';
+        $table = $this->table($prefix . '_invoices');
 
+        if ($table->exists()) {
+            return;
+        }
+        
         $table
             ->addColumn('qbo_company_id', 'integer', [
                 'null' => false,
-                'comment' => 'References '.$_ENV['QBO_TABLE_PREFIX'] ?? 'qbo' .'_companies.id',
+                'comment' => 'References ' . $prefix . '_companies.id',
                 'signed' => false,
             ])
             ->addColumn('qbo_customer_id', 'integer', [
                 'null' => false,
-                'comment' => 'References '.$_ENV['QBO_TABLE_PREFIX'] ?? 'qbo' .'_customers.id',
+                'comment' => 'References ' . $prefix . '_customers.id',
                 'signed' => false,
             ])
             ->addColumn('invoice_number', 'string', [
@@ -77,13 +82,13 @@ final class CreateQboInvoices extends AbstractMigration
             ])
             ->addForeignKey(
                 'qbo_company_id',
-                'qbo_companies',
+                $prefix . '_companies',
                 'id',
                 ['delete' => 'CASCADE']
             )
             ->addForeignKey(
                 'qbo_customer_id',
-                'qbo_customers',
+                $prefix . '_customers',
                 'id',
                 ['delete' => 'CASCADE']
             )

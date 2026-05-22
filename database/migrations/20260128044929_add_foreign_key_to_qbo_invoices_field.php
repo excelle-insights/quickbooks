@@ -19,7 +19,8 @@ final class AddForeignKeyToQboInvoicesField extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table('qbo_payment_items');
+        $prefix = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo');
+        $table = $this->table($prefix . '_payment_items');
         if ($table->hasColumn('qbo_invoice_id')) {
             $table
                 ->changeColumn('qbo_invoice_id', 'integer', [
@@ -28,7 +29,7 @@ final class AddForeignKeyToQboInvoicesField extends AbstractMigration
                 ])
                 ->addForeignKey(
                     'qbo_invoice_id',
-                    'qbo_invoices',
+                    $prefix . '_invoices',
                     'id',
                     [
                         'delete' => 'CASCADE',

@@ -72,7 +72,22 @@ class PaymentClient extends BaseClient
             $this->endpoint('payment/' . urlencode($qboPaymentId))
         );
     }
-
+    /**
+     * Get all payments for a specific customer
+     */
+    public function getByCustomer(string $customerQboId, int $maxResults = 1000, int $startPosition = 1): object
+    {
+        $query = "SELECT * FROM Payment WHERE CustomerRef = '$customerQboId' STARTPOSITION $startPosition MAXRESULTS $maxResults";
+        return $this->sendRequest('GET', $this->endpoint('query?query=' . rawurlencode($query)));
+    }
+    /**
+     * Get all payments for a customer after a specific date
+     */
+    public function getByCustomerAfterDate(string $customerQboId, string $afterDate, int $maxResults = 1000, int $startPosition = 1): object
+    {
+        $query = "SELECT * FROM Payment WHERE CustomerRef = '$customerQboId' AND TxnDate >= '$afterDate' STARTPOSITION $startPosition MAXRESULTS $maxResults";
+        return $this->sendRequest('GET', $this->endpoint('query?query=' . rawurlencode($query)));
+    }
     /**
      * Search payment by reference number
      */

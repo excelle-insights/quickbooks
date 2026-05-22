@@ -19,7 +19,7 @@ final class AddVendorHashToQboVendorsTable extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table('qbo_vendors');
+        $table = $this->table(($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_vendors');
         
         $table->addColumn('vendor_hash', 'string', [
             'null' => true,

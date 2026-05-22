@@ -7,7 +7,12 @@ use DateTime;
 
 class QboPaymentRepository
 {
-    public function __construct(private PDO $pdo) {}
+    private string $table;
+
+    public function __construct(private PDO $pdo)
+    {
+        $this->table = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_payments';
+    }
 
     /**
      * Create a new payment record
@@ -15,7 +20,7 @@ class QboPaymentRepository
     public function create(array $data): int
     {
         $stmt = $this->pdo->prepare("
-            INSERT INTO qbo_payments
+            INSERT INTO {$this->table}
             (local_id, pay_id, qbo_customer_id, total_amount, txn_date, payment_ref, deposit_account_id, private_note, status, retry_count, error_message, last_attempt_at, created_at, updated_at)
             VALUES
             (:local_id, :pay_id, :qbo_customer_id, :total_amount, :txn_date, :payment_ref, :deposit_account_id, :private_note, :status, :retry_count, :error_message, :last_attempt_at, NOW(), NOW())
@@ -49,7 +54,7 @@ class QboPaymentRepository
             $params[":$key"] = $value;
         }
 
-        $sql = "UPDATE qbo_payments SET " . implode(', ', $fields) . ", updated_at = NOW() WHERE id = :id";
+        $sql = "UPDATE {$this->table} SET " . implode(', ', $fields) . ", updated_at = NOW() WHERE id = :id";
 
         $stmt = $this->pdo->prepare($sql);
         return $stmt->execute($params);
@@ -63,7 +68,7 @@ class QboPaymentRepository
         string $syncToken
     ): void {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_payments 
+            UPDATE {$this->table} 
             SET
                 qbo_id      = :qbo_id,
                 sync_token  = :sync_token,
@@ -85,7 +90,7 @@ class QboPaymentRepository
     public function markFailed(int $id, string $reason): void
     {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_payments 
+            UPDATE {$this->table} 
             SET
                 status = 'failed',
                 retry_count = retry_count + 1, 
@@ -103,7 +108,7 @@ class QboPaymentRepository
     {
         $sql = "
         SELECT *
-        FROM qbo_payments
+        FROM {$this->table} 
         WHERE status IN ('pending', 'failed')
           AND retry_count < :maxRetries
           AND (
@@ -127,7 +132,7 @@ class QboPaymentRepository
     public function claimForProcessing(int $id): bool
     {
         $stmt = $this->pdo->prepare("
-        UPDATE qbo_payments
+        UPDATE {$this->table} 
         SET status = 'processing',
             last_attempt_at = NOW()
         WHERE id = :id
@@ -142,10 +147,20 @@ class QboPaymentRepository
     public function findByQboId(string $qboPaymentId): ?array
     {
         $stmt = $this->pdo->prepare("
-            SELECT * FROM qbo_payments WHERE qbo_payment_id = :qbo_payment_id LIMIT 1
+            SELECT * FROM {$this->table} WHERE qbo_payment_id = :qbo_payment_id LIMIT 1
         ");
         $stmt->execute([':qbo_payment_id' => $qboPaymentId]);
 
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+    /**
+     * Find by local_id
+     */
+    public function findByLocalId(int $localId): ?object
+    {
+        $stmt = $this->pdo->prepare("SELECT * FROM {$this->table} WHERE local_id = ?");
+        $stmt->execute([$localId]);
+
+        return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
     }
 }

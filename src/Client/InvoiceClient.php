@@ -45,7 +45,31 @@ class InvoiceClient extends BaseClient
     {
         return $this->sendRequest('GET', $this->endpoint('invoice/' . urlencode($qboInvoiceId)));
     }
+    /**
+     * Get all invoices with outstanding balances for a specific customer
+     */
+    public function getByCustomerWithBalance(string $customerQboId, int $maxResults = 1000, int $startPosition = 1): object
+    {
+        $query = "SELECT * FROM Invoice WHERE CustomerRef = '$customerQboId' AND Balance > '0' STARTPOSITION $startPosition MAXRESULTS $maxResults";
+        return $this->sendRequest('GET', $this->endpoint('query?query=' . rawurlencode($query)));
+    }
 
+    /**
+     * Get all invoices for a specific customer (regardless of balance)
+     */
+    public function getByCustomer(string $customerQboId, int $maxResults = 1000, int $startPosition = 1): object
+    {
+        $query = "SELECT * FROM Invoice WHERE CustomerRef = '$customerQboId' STARTPOSITION $startPosition MAXRESULTS $maxResults";
+        return $this->sendRequest('GET', $this->endpoint('query?query=' . rawurlencode($query)));
+    }
+    /**
+     * Get all invoices for a customer after a specific date
+     */
+    public function getByCustomerAfterDate(string $customerQboId, string $afterDate, int $maxResults = 1000, int $startPosition = 1): object
+    {
+        $query = "SELECT * FROM Invoice WHERE CustomerRef = '$customerQboId' AND TxnDate >= '$afterDate' STARTPOSITION $startPosition MAXRESULTS $maxResults";
+        return $this->sendRequest('GET', $this->endpoint('query?query=' . rawurlencode($query)));
+    }
     /**
      * Search invoice by DocNumber
      */

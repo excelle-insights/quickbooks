@@ -6,7 +6,12 @@ use PDO;
 
 class QboClassRepository
 {
-    public function __construct(private PDO $pdo) {}
+    private string $table;
+
+    public function __construct(private PDO $pdo)
+    {
+        $this->table = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_classes';
+    }
 
     /**
      * Create local class (pre-sync)
@@ -14,7 +19,7 @@ class QboClassRepository
     public function create(array $data): int
     {
         $stmt = $this->pdo->prepare("
-            INSERT INTO qbo_classes (
+            INSERT INTO {$this->table} (
                 qbo_company_id,
                 name,
                 parent_id,
@@ -46,7 +51,7 @@ class QboClassRepository
         string $syncToken
     ): void {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_classes
+            UPDATE {$this->table}
             SET
                 qbo_id = ?,
                 sync_token = ?,
@@ -66,7 +71,7 @@ class QboClassRepository
     public function markFailed(int $id, string $error): void
     {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_classes
+            UPDATE {$this->table}
             SET
                 status = 'failed',
                 retry_count = retry_count + 1,
@@ -85,7 +90,7 @@ class QboClassRepository
     public function find(int $id): ?object
     {
         $stmt = $this->pdo->prepare(
-            "SELECT * FROM qbo_classes WHERE id = ?"
+            "SELECT * FROM {$this->table} WHERE id = ?"
         );
         $stmt->execute([$id]);
 
@@ -98,7 +103,7 @@ class QboClassRepository
     public function findByQboId(string $qboId): ?object
     {
         $stmt = $this->pdo->prepare(
-            "SELECT * FROM qbo_classes WHERE qbo_id = ?"
+            "SELECT * FROM {$this->table} WHERE qbo_id = ?"
         );
         $stmt->execute([$qboId]);
 
@@ -120,7 +125,7 @@ class QboClassRepository
     {
         $stmt = $this->pdo->prepare("
             SELECT *
-            FROM qbo_classes
+            FROM {$this->table}
             WHERE status IN ('pending', 'failed')
               AND retry_count < :maxRetries
             ORDER BY last_attempt_at ASC

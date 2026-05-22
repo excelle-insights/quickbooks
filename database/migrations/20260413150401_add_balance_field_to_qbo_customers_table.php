@@ -19,7 +19,7 @@ final class AddBalanceFieldToQboCustomersTable extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table('qbo_customers');
+        $table = $this->table(($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_customers');
         if (!$table->hasColumn('balance')) {
             $table->addColumn('balance', 'decimal', [
                 'precision' => 15,

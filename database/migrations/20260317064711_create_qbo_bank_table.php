@@ -11,7 +11,7 @@ final class CreateQboBankTable extends AbstractMigration
      */
     public function change(): void
     {
-        $table = $this->table('qbo_bank', ['id' => false, 'primary_key' => ['id']]);
+        $table = $this->table(($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_bank', ['id' => false, 'primary_key' => ['id']]);
         
         $table->addColumn('id', 'integer', [
                 'identity' => true,

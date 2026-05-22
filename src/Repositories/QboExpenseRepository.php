@@ -6,12 +6,17 @@ use PDO;
 
 class QboExpenseRepository
 {
-    public function __construct(private PDO $pdo) {}
+    private string $table;
+
+    public function __construct(private PDO $pdo)
+    {
+        $this->table = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_expenses';
+    }
 
     public function create(array $data): int
     {
         $stmt = $this->pdo->prepare("
-            INSERT INTO qbo_expenses (
+            INSERT INTO {$this->table} (
                 qbo_company_id,
                 qbo_vendor_id,
                 payment_account_qbo_id,
@@ -45,7 +50,7 @@ class QboExpenseRepository
     public function markSynced(int $id, string $qboId, string $syncToken): void
     {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_expenses
+            UPDATE {$this->table}
             SET qbo_id = ?, sync_token = ?, status = 'synced', last_attempt_at = NOW()
             WHERE id = ?
         ");
@@ -55,7 +60,7 @@ class QboExpenseRepository
     public function markFailed(int $id, string $error): void
     {
         $stmt = $this->pdo->prepare("
-            UPDATE qbo_expenses
+            UPDATE {$this->table}
             SET status = 'failed',
                 retry_count = retry_count + 1,
                 last_attempt_at = NOW(),
@@ -67,14 +72,14 @@ class QboExpenseRepository
 
     public function find(int $id): ?object
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM qbo_expenses WHERE id = ?");
+        $stmt = $this->pdo->prepare("SELECT * FROM {$this->table} WHERE id = ?");
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
     }
 
     public function findByQboId(string $qboId): ?object
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM qbo_expenses WHERE qbo_id = ?");
+        $stmt = $this->pdo->prepare("SELECT * FROM {$this->table} WHERE qbo_id = ?");
         $stmt->execute([$qboId]);
         return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
     }
@@ -83,7 +88,7 @@ class QboExpenseRepository
     {
         $stmt = $this->pdo->prepare("
             SELECT *
-            FROM qbo_expenses
+            FROM {$this->table}
             WHERE status IN ('pending', 'failed')
               AND retry_count < :maxRetries
             ORDER BY last_attempt_at ASC

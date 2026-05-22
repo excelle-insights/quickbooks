@@ -8,9 +8,10 @@ final class CreateQboTaxCodesTable extends AbstractMigration
 {
     public function change(): void
     {
+        $prefix = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo');
         // qbo_tax_codes — synced FROM QuickBooks (QBO is source of truth)
-        if (!$this->hasTable('qbo_tax_codes')) {
-            $this->table('qbo_tax_codes')
+        if (!$this->hasTable($prefix . '_tax_codes')) {
+            $this->table($prefix . '_tax_codes')
                 ->addColumn('qbo_company_id', 'integer', ['null' => false])
                 ->addColumn('qbo_id',          'string',  ['null' => true,  'comment' => 'QuickBooks TaxCode Id'])
                 ->addColumn('name',            'string',  ['null' => false, 'comment' => 'e.g. VAT, EXEMPT, ZERO'])
@@ -29,10 +30,10 @@ final class CreateQboTaxCodesTable extends AbstractMigration
         }
 
         // Add tax_code_id to qbo_bill_items
-        if ($this->hasTable('qbo_bill_items')) {
-            $table = $this->table('qbo_bill_items');
+        if ($this->hasTable($prefix . '_bill_items')) {
+            $table = $this->table($prefix . '_bill_items');
 
-            if (!$this->hasColumn('qbo_bill_items', 'tax_code_id')) {
+            if (!$this->hasColumn($prefix . '_bill_items', 'tax_code_id')) {
                 $table->addColumn('tax_code_id', 'integer', [
                     'null'    => true,
                     'after'   => 'qbo_class_id',
