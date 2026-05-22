@@ -25,6 +25,38 @@ class BillClient extends BaseClient
             throw new \InvalidArgumentException('Bill items are required.');
         }
 
+        // Pre-flight: verify the vendor exists and is active in QBO
+        // Error 2500 "Names element id X not found" fires when the vendor is inactive/deleted
+        try {
+            $vendorResp = $this->sendRequest('GET', $this->endpoint('vendor/' . urlencode($data['vendor_qbo_id'])));
+            $vendor     = $vendorResp->Vendor ?? null;
+            if (!$vendor) {
+                throw new \RuntimeException(
+                    "Vendor (QBO ID {$data['vendor_qbo_id']}) was not found in QuickBooks. "
+                    . "Please re-sync the supplier from the Suppliers list and try again."
+                );
+            }
+            if (isset($vendor->Active) && $vendor->Active === false) {
+                throw new \RuntimeException(
+                    "Vendor \"{$vendor->DisplayName}\" (QBO ID {$data['vendor_qbo_id']}) is inactive in QuickBooks. "
+                    . "Please reactivate the vendor in QBO, then re-sync the supplier and try again."
+                );
+            }
+        } catch (\RuntimeException $e) {
+            throw $e; // re-throw our own messages
+        } catch (\Throwable $e) {
+            // If the vendor fetch itself fails with a QBO error, surface it clearly
+            $msg = $e->getMessage();
+            if (strpos($msg, 'Names element') !== false || strpos($msg, '2500') !== false) {
+                throw new \RuntimeException(
+                    "Vendor (QBO ID {$data['vendor_qbo_id']}) is inactive or deleted in QuickBooks. "
+                    . "Please reactivate the vendor in QBO, then re-sync the supplier and try again."
+                );
+            }
+            // Non-vendor errors (network, auth) — let them propagate naturally
+            throw $e;
+        }
+
         $lines         = $this->buildLines($data['items']);
         $globalTaxCalc = $this->resolveGlobalTaxCalculation($data['items']);
 
