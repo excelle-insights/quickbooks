@@ -34,7 +34,8 @@ class QboBillItemRepository
             $data['tax_code_id']  ?? null,
             $data['account_qbo_id'],
             $data['amount'],
-            $data['description'] ?? null,
+            // Truncate to 4000 chars as a safety net (TEXT supports ~65k but QBO line descriptions are short)
+            isset($data['description']) ? mb_substr($data['description'], 0, 4000) : null,
         ]);
     }
 
@@ -63,7 +64,7 @@ class QboBillItemRepository
                 $item['tax_code_id']  ?? null,
                 $item['account_qbo_id'],
                 $item['amount'],
-                $item['description'] ?? null,
+                isset($item['description']) ? mb_substr($item['description'], 0, 4000) : null,
             ]);
         }
     }
