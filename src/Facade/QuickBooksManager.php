@@ -484,6 +484,22 @@ class QuickBooksManager
     }
 
     /**
+     * Run an arbitrary QBO query against the Bill entity.
+     * Used to look up an existing bill by DocNumber when a duplicate is detected.
+     */
+    public function queryBills(string $query): object
+    {
+        $client = new BillClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->query($query);
+    }
+
+    /**
      * -------------------------
      * Bill Payments
      * -------------------------

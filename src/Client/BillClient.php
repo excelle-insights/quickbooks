@@ -109,6 +109,14 @@ class BillClient extends BaseClient
     }
 
     /**
+     * Run an arbitrary QBO query (e.g. to find a bill by DocNumber)
+     */
+    public function query(string $query): object
+    {
+        return $this->sendRequest('GET', $this->endpoint('query?query=' . rawurlencode($query)));
+    }
+
+    /**
      * Void or delete a Bill
      */
     public function void(string $qboBillId, string $syncToken): object
