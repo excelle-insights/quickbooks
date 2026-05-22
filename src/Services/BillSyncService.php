@@ -59,6 +59,11 @@ class BillSyncService
         $data['vendor_qbo_id'] = $vendor->qbo_id;
 
         // 3. Resolve class and tax code on each item
+        // Pre-load the default tax code once — used as fallback for lines with no
+        // tax_code_id.  QBO (non-US) rejects bills where any line is missing a tax
+        // rate (error 6000 / "All items need a tax rate").
+        $defaultTaxCode = $this->taxCodeRepo->findDefault();
+
         $items = [];
         foreach ($data['items'] ?? [] as $item) {
 
@@ -81,7 +86,8 @@ class BillSyncService
                 $item['class_qbo_id'] = $class->qbo_id;
             }
 
-            // Resolve tax code
+            // Resolve tax code — fall back to the default active tax code when none
+            // is set, because QBO (non-US) requires every bill line to carry a tax rate.
             if (!empty($item['tax_code_id'])) {
                 $taxCode = $this->taxCodeRepo->find((int) $item['tax_code_id']);
 
@@ -103,6 +109,15 @@ class BillSyncService
                 // tax_types row so QBO receives the correct tax calculation
                 if (empty($item['tax_rate']) || (float)$item['tax_rate'] === 0.0) {
                     $item['tax_rate'] = $this->resolveRateFromTaxCode($taxCode);
+                }
+            } elseif ($defaultTaxCode && $defaultTaxCode->qbo_id) {
+                // No tax code on this line — apply the default so QBO doesn't reject
+                // with "All items need a tax rate" (ValidationFault / error 6000).
+                $item['tax_code_id']     = $defaultTaxCode->id;
+                $item['tax_code_qbo_id'] = $defaultTaxCode->qbo_id;
+
+                if (empty($item['tax_rate']) || (float)$item['tax_rate'] === 0.0) {
+                    $item['tax_rate'] = $this->resolveRateFromTaxCode($defaultTaxCode);
                 }
             }
 

@@ -6,7 +6,12 @@ use PDO;
 
 class QboTaxCodeRepository
 {
-    public function __construct(private PDO $pdo) {}
+    private string $table;
+
+    public function __construct(private PDO $pdo)
+    {
+        $this->table = ($_ENV['QBO_TABLE_PREFIX'] ?? 'qbo') . '_tax_codes';
+    }
 
     public function getPdo(): PDO
     {
@@ -23,7 +28,7 @@ class QboTaxCodeRepository
 
         if ($existing) {
             $stmt = $this->pdo->prepare("
-                UPDATE qbo_tax_codes SET
+                UPDATE {$this->table} SET
                     name            = ?,
                     description     = ?,
                     taxable         = ?,
@@ -47,7 +52,7 @@ class QboTaxCodeRepository
         }
 
         $stmt = $this->pdo->prepare("
-            INSERT INTO qbo_tax_codes (
+            INSERT INTO {$this->table} (
                 qbo_company_id, qbo_id, name, description,
                 taxable, active, sync_token, status,
                 created_at, updated_at
@@ -68,15 +73,33 @@ class QboTaxCodeRepository
 
     public function find(int $id): ?object
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM qbo_tax_codes WHERE id = ?");
+        $stmt = $this->pdo->prepare("SELECT * FROM {$this->table} WHERE id = ?");
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
     }
 
     public function findByQboId(string $qboId): ?object
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM qbo_tax_codes WHERE qbo_id = ?");
+        $stmt = $this->pdo->prepare("SELECT * FROM {$this->table} WHERE qbo_id = ?");
         $stmt->execute([$qboId]);
+        return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
+    }
+
+    /**
+     * Return the default active/synced taxable code to use as a fallback when a
+     * bill line item has no tax code assigned.  QBO (non-US) requires every line
+     * to carry a tax rate; this prevents the "All items need a tax rate" (6000)
+     * ValidationFault.  Returns null if no suitable code exists.
+     */
+    public function findDefault(): ?object
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT * FROM {$this->table}
+            WHERE active = 1 AND status = 'synced' AND taxable = 1
+            ORDER BY id ASC
+            LIMIT 1
+        ");
+        $stmt->execute();
         return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
     }
 
@@ -86,7 +109,7 @@ class QboTaxCodeRepository
     public function getAllActive(int $qboCompanyId): array
     {
         $stmt = $this->pdo->prepare("
-            SELECT * FROM qbo_tax_codes
+            SELECT * FROM {$this->table}
             WHERE qbo_company_id = ? AND active = 1 AND status = 'synced'
             ORDER BY name ASC
         ");
