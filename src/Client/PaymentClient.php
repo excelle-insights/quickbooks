@@ -41,9 +41,9 @@ class PaymentClient extends BaseClient
             ];
         }
 
-        if (empty($lineItemData)) {
-            throw new \InvalidArgumentException('No valid line items to create payment.');
-        }
+        // if (empty($lineItemData)) {
+        //     throw new \InvalidArgumentException('No valid line items to create payment.');
+        // }
 
         $payload = array_filter([
             'CustomerRef' => [
