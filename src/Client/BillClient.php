@@ -117,6 +117,32 @@ class BillClient extends BaseClient
     }
 
     /**
+     * Sparse-update a Bill's DocNumber in QuickBooks Online.
+     * Fetches the current SyncToken first, then patches only the DocNumber field.
+     */
+    public function updateDocNumber(string $qboBillId, string $newDocNumber): object
+    {
+        // Fetch current bill to get SyncToken (required for any QBO update)
+        $current = $this->sendRequest('GET', $this->endpoint('bill/' . urlencode($qboBillId)));
+        $bill    = $current->Bill ?? null;
+
+        if (!$bill) {
+            throw new \RuntimeException("Bill (QBO ID $qboBillId) not found in QuickBooks.");
+        }
+
+        $syncToken = $bill->SyncToken ?? '0';
+
+        $payload = [
+            'Id'        => $qboBillId,
+            'SyncToken' => $syncToken,
+            'sparse'    => true,
+            'DocNumber' => $newDocNumber,
+        ];
+
+        return $this->sendRequest('POST', $this->endpoint('bill'), $payload);
+    }
+
+    /**
      * Void or delete a Bill
      */
     public function void(string $qboBillId, string $syncToken): object
