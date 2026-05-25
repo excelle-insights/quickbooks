@@ -86,6 +86,24 @@ class QboTaxCodeRepository
     }
 
     /**
+     * Return the default active/synced taxable code to use as a fallback when a
+     * bill line item has no tax code assigned.  QBO (non-US) requires every line
+     * to carry a tax rate; this prevents the "All items need a tax rate" (6000)
+     * ValidationFault.  Returns null if no suitable code exists.
+     */
+    public function findDefault(): ?object
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT * FROM {$this->table}
+            WHERE active = 1 AND status = 'synced' AND taxable = 1
+            ORDER BY id ASC
+            LIMIT 1
+        ");
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
+    }
+
+    /**
      * Get all active tax codes for a company (for UI dropdowns etc.)
      */
     public function getAllActive(int $qboCompanyId): array
