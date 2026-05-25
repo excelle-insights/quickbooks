@@ -19,9 +19,9 @@ class PaymentClient extends BaseClient
             throw new \InvalidArgumentException('Payment amount is required.');
         }
 
-        if (empty($data['items']) || !is_array($data['items'])) {
-            throw new \InvalidArgumentException('Line items are required for payment.');
-        }
+        // if (empty($data['items']) || !is_array($data['items'])) {
+        //     throw new \InvalidArgumentException('Line items are required for payment.');
+        // }
 
         $lineItemData = [];
         foreach ($data['items'] as $lineItem) {
