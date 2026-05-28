@@ -484,6 +484,45 @@ class QuickBooksManager
     }
 
     /**
+     * Sparse-update a Bill's DocNumber in QuickBooks Online.
+     * Used to correct bills that were synced with a wrong DocNumber (e.g. MD5 hash).
+     *
+     * @param string $qboBillId     The QBO Bill ID
+     * @param string $newDocNumber  The correct invoice number to set as DocNumber
+     * @param mixed  $localInvoiceId  Local invoice ID (for DB update)
+     * @param string $invoiceType   'procurement' or 'contract'
+     */
+    public function updateBillDocNumber(string $qboBillId, string $newDocNumber, $localInvoiceId = null, string $invoiceType = 'procurement'): object
+    {
+        $client = new BillClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $response = $client->updateDocNumber($qboBillId, $newDocNumber);
+
+        // Normalise response to match createBill's return shape
+        if (isset($response->Bill)) {
+            return (object)[
+                'status' => 'synced',
+                'qbo_id' => $response->Bill->Id,
+                'data'   => $response->Bill,
+            ];
+        }
+
+        $error = $response->Fault->Error[0]->Message
+            ?? $response->error
+            ?? 'Unexpected response from QuickBooks';
+
+        return (object)[
+            'status' => 'failed',
+            'error'  => "QBO update failed: $error",
+        ];
+    }
+
+    /**
      * Run an arbitrary QBO query against the Bill entity.
      * Used to look up an existing bill by DocNumber when a duplicate is detected.
      */
