@@ -23,6 +23,7 @@ final class ExpandDescriptionInQboBillItems extends AbstractMigration
 
     public function down(): void
     {
+        $prefix = $_ENV['QBO_TABLE_PREFIX'] ?? 'qbo';
         // Truncate any existing data that exceeds 255 chars before reverting
         $this->execute("
             UPDATE {$prefix}_bill_items
