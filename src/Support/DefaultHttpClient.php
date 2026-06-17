@@ -60,29 +60,28 @@ class DefaultHttpClient implements HttpClientInterface
         $headerSize  = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
         $curlError   = curl_error($ch);
 
-        if ($rawResponse === false) {
-            $this->log('error', 'HTTP Request Failed', [
-                'method' => strtoupper($method),
-                'url'    => $url,
-                'error'  => $curlError,
-            ]);
-
-            return [
-                'status'  => 0,
-                'headers' => [],
-                'body'    => $curlError,
-            ];
-        }
-
         curl_close($ch);
-
-        $rawHeaders      = substr($rawResponse, 0, $headerSize);
-        $responseBody    = substr($rawResponse, $headerSize);
-        $responseHeaders = $this->parseHeaders($rawHeaders);
 
         $durationMs = round((microtime(true) - $startTime) * 1000, 2);
 
-        $this->log('info', 'HTTP Transaction', [
+        $logLevel    = 'info';
+        $responseHeaders = [];
+        $responseBody    = null;
+
+        if ($rawResponse === false) {
+            $logLevel    = 'error';
+            $responseBody = $curlError;
+        } else {
+            $rawHeaders      = substr($rawResponse, 0, $headerSize);
+            $responseBody    = substr($rawResponse, $headerSize);
+            $responseHeaders = $this->parseHeaders($rawHeaders);
+
+            if ($curlError || $statusCode >= 400) {
+                $logLevel = 'error';
+            }
+        }
+
+        $this->log($logLevel, 'HTTP Transaction', [
             'method'           => strtoupper($method),
             'url'              => $url,
             'request_headers'  => $this->redactHeaders($headers),
@@ -91,14 +90,15 @@ class DefaultHttpClient implements HttpClientInterface
             'response_headers' => $responseHeaders,
             'response_body'    => $responseBody,
             'duration_ms'      => $durationMs,
+            'curl_error'       => $curlError ?: null,
         ]);
 
-        if ($curlError) {
-            $this->log('error', 'HTTP Error', [
-                'method' => strtoupper($method),
-                'url'    => $url,
-                'error'  => $curlError,
-            ]);
+        if ($rawResponse === false) {
+            return [
+                'status'  => 0,
+                'headers' => [],
+                'body'    => $curlError,
+            ];
         }
 
         return [
