@@ -101,6 +101,31 @@ class PaymentClient extends BaseClient
     }
 
     /**
+     * Update a payment via sparse update in QuickBooks
+     */
+    public function update(string $qboPaymentId, string $syncToken, array $data): object
+    {
+        if (empty($syncToken)) {
+            throw new \InvalidArgumentException('syncToken is required to update a payment.');
+        }
+
+        $payload = array_filter([
+            'Id' => $qboPaymentId,
+            'SyncToken' => $syncToken,
+            'sparse' => true,
+            'TotalAmt' => isset($data['total_amount']) ? (float) $data['total_amount'] : null,
+            'TxnDate' => $data['txn_date'] ?? null,
+            'PaymentRefNum' => $data['payment_ref'] ?? null,
+            'DepositToAccountRef' => isset($data['deposit_account_id'])
+                ? ['value' => $data['deposit_account_id']]
+                : null,
+            'PrivateNote' => $data['private_note'] ?? null,
+        ], fn($v) => $v !== null);
+
+        return $this->sendRequest('POST', $this->endpoint('payment'), $payload);
+    }
+
+    /**
      * Void or deactivate a payment
      */
     public function void(string $qboPaymentId, string $syncToken): object

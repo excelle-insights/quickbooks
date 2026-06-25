@@ -137,4 +137,44 @@ class InvoiceSyncService
         $qboInvoice = $this->invoiceClient->getById($invoice_id);
         return $qboInvoice;
     }
+
+    public function void(int $localId): object
+    {
+        $invoice = $this->invoiceRepo->findByLocalId($localId);
+        if (!$invoice || !$invoice->qbo_id) {
+            return (object) [
+                'status' => 'error',
+                'error'  => 'Invoice not found or not yet synced to QBO',
+            ];
+        }
+
+        try {
+            $qboInvoice = $this->invoiceClient->getById($invoice->qbo_id);
+            $syncToken = $qboInvoice->Invoice->SyncToken ?? null;
+
+            $result = $this->invoiceClient->void($invoice->qbo_id, $syncToken);
+
+            $newSyncToken = $result->Invoice->SyncToken ?? $syncToken;
+
+            $this->invoiceRepo->markSynced(
+                (int) $invoice->id,
+                $invoice->qbo_id,
+                $newSyncToken,
+                $result->Invoice->TotalAmt ?? 0
+            );
+
+            return (object) [
+                'status'   => 'voided',
+                'local_id' => $localId,
+                'qbo_id'   => $invoice->qbo_id,
+            ];
+        } catch (\Throwable $e) {
+            error_log("QBO Invoice void failed: " . $e->getMessage());
+            return (object) [
+                'status'   => 'failed',
+                'local_id' => $localId,
+                'error'    => $e->getMessage(),
+            ];
+        }
+    }
 }
