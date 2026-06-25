@@ -131,12 +131,18 @@ class BillClient extends BaseClient
         }
 
         $syncToken = $bill->SyncToken ?? '0';
+        $vendorRef = $bill->VendorRef ?? null;
+
+        if (!$vendorRef) {
+            throw new \RuntimeException("Bill (QBO ID $qboBillId) has no VendorRef — cannot update.");
+        }
 
         $payload = [
             'Id'        => $qboBillId,
             'SyncToken' => $syncToken,
             'sparse'    => true,
             'DocNumber' => $newDocNumber,
+            'VendorRef' => $vendorRef,
         ];
 
         return $this->sendRequest('POST', $this->endpoint('bill'), $payload);
