@@ -131,4 +131,51 @@ class PaymentSyncService
             ];
         }
     }
+
+    public function update(array $data): object
+    {
+        $localId = $data['local_id'] ?? null;
+        if (!$localId) {
+            return (object) ['status' => 'error', 'error' => 'local_id is required'];
+        }
+
+        $existing = $this->paymentRepo->findByLocalId($localId);
+        if (!$existing) {
+            return (object) ['status' => 'error', 'error' => 'Payment not found'];
+        }
+
+        $this->paymentRepo->updatePayment((int) $existing->id, $data);
+
+        try {
+            $qboPayment = $this->paymentClient->getById($existing->qbo_id);
+            $syncToken = $qboPayment->Payment->SyncToken ?? null;
+
+            $qboResult = $this->paymentClient->update(
+                $existing->qbo_id,
+                $syncToken,
+                $data
+            );
+
+            $newSyncToken = $qboResult->Payment->SyncToken ?? $syncToken;
+
+            $this->paymentRepo->markSynced(
+                (int) $existing->id,
+                $existing->qbo_id,
+                $newSyncToken
+            );
+
+            return (object) [
+                'status'   => 'synced',
+                'local_id' => $localId,
+                'qbo_id'   => $existing->qbo_id,
+            ];
+        } catch (\Throwable $e) {
+            error_log("QBO Payment update failed: " . $e->getMessage());
+            return (object) [
+                'status'   => 'failed',
+                'local_id' => $localId,
+                'error'    => $e->getMessage(),
+            ];
+        }
+    }
 }
