@@ -13,22 +13,25 @@ final class ExpandDescriptionInQboBillItems extends AbstractMigration
 {
     public function up(): void
     {
+        $prefix = $_ENV['QBO_TABLE_PREFIX'] ?? 'qbo';
+        
         $this->execute("
-            ALTER TABLE qbo_bill_items
+            ALTER TABLE {$prefix}_bill_items
             MODIFY COLUMN description TEXT NULL
         ");
     }
 
     public function down(): void
     {
+        $prefix = $_ENV['QBO_TABLE_PREFIX'] ?? 'qbo';
         // Truncate any existing data that exceeds 255 chars before reverting
         $this->execute("
-            UPDATE qbo_bill_items
+            UPDATE {$prefix}_bill_items
             SET description = LEFT(description, 255)
             WHERE LENGTH(description) > 255
         ");
         $this->execute("
-            ALTER TABLE qbo_bill_items
+            ALTER TABLE {$prefix}_bill_items
             MODIFY COLUMN description VARCHAR(255) NULL
         ");
     }
