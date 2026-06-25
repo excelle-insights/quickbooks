@@ -51,7 +51,7 @@ class PaymentClient extends BaseClient
             ],
             'TotalAmt' => (float) $data['amount'],
             'TxnDate' => $data['txn_date'] ?? date('Y-m-d'),
-            'PaymentRefNum' => $data['transaction_ref'] ?? null,
+            'PaymentRefNum' => $data['payment_ref'] ?? null,
             'DepositToAccountRef' => [
                 'value' => $data['bank_account'] ?? null
             ],
