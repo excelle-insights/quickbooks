@@ -49,9 +49,11 @@ class PaymentClient extends BaseClient
             'CustomerRef' => [
                 'value' => $data['customer_qbo_id']
             ],
+            'PaymentMethodRef' => [
+                'value' => $data['payment_method_qbo_id']
+            ],
             'TotalAmt' => (float) $data['amount'],
             'TxnDate' => $data['txn_date'] ?? date('Y-m-d'),
-            'PaymentRefNum' => $data['payment_ref'] ?? null,
             'DepositToAccountRef' => [
                 'value' => $data['bank_account'] ?? null
             ],
