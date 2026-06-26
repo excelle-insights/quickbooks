@@ -118,6 +118,9 @@ class PaymentClient extends BaseClient
             'TotalAmt' => isset($data['total_amount']) ? (float) $data['total_amount'] : null,
             'TxnDate' => $data['txn_date'] ?? null,
             'PaymentRefNum' => $data['payment_ref'] ?? null,
+            'PaymentMethodRef' => isset($data['payment_method_qbo_id'])
+                ? ['value' => $data['payment_method_qbo_id']]
+                : null,
             'DepositToAccountRef' => isset($data['deposit_account_id'])
                 ? ['value' => $data['deposit_account_id']]
                 : null,
