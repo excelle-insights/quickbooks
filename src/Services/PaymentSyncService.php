@@ -23,6 +23,12 @@ class PaymentSyncService
      */
     public function create(array $data): object
     {
+
+        /**
+         * 1️⃣ Create payment locally
+         */
+        $localPaymentId = $this->paymentRepo->create($data);
+
         /**
          * Ensure all linked invoices are synced
          */
@@ -43,11 +49,7 @@ class PaymentSyncService
                 ];
             }
         }
-        /**
-         * 1️⃣ Create payment locally
-         */
-        $localPaymentId = $this->paymentRepo->create($data);
-
+        
         /**
          * Persist line items locally
          */
