@@ -75,7 +75,7 @@ class PaymentSyncService
             'customer_qbo_id' => $customer->qbo_id,
             'amount'          => $data['total_amount'],
             'txn_date'        => $data['txn_date'] ?? null,
-            'transaction_ref' => $data['payment_ref'] ?? null,
+            'payment_ref' => $data['payment_ref'] ?? null,
             'bank_account'    => $data['deposit_account_id'] ?? null,
             'private_note'    => $data['private_note'] ?? null,
             'items'      => array_map(
