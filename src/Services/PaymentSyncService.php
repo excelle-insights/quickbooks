@@ -25,9 +25,17 @@ class PaymentSyncService
     {
 
         /**
-         * 1️⃣ Create payment locally
+         * Create payment locally
          */
         $localPaymentId = $this->paymentRepo->create($data);
+
+        /**
+         * Persist line items locally
+         */
+        foreach ($data['items'] ?? [] as $item) {
+            $item['qbo_payment_id'] = $localPaymentId;
+            $this->paymentItemRepo->create($item);
+        }
 
         /**
          * Ensure all linked invoices are synced
@@ -48,14 +56,6 @@ class PaymentSyncService
                     'reason'   => 'Linked invoice not yet synced to QBO',
                 ];
             }
-        }
-        
-        /**
-         * Persist line items locally
-         */
-        foreach ($data['items'] ?? [] as $item) {
-            $item['qbo_payment_id'] = $localPaymentId;
-            $this->paymentItemRepo->create($item);
         }
 
         /**
