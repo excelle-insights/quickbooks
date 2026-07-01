@@ -82,13 +82,17 @@ class InvoiceClient extends BaseClient
     /**
      * Void an invoice in QuickBooks Online
      *
-     * Uses the dedicated QBO void endpoint: POST /invoice/{id}/void
+     * POST /invoice?operation=void&minorversion=75
+     * with body { SyncToken, Id }
      */
     public function void(string $qboInvoiceId, string $syncToken): object
     {
-        $endpoint = 'invoice/' . urlencode($qboInvoiceId) . '/void';
+        $payload = [
+            'Id'        => $qboInvoiceId,
+            'SyncToken' => $syncToken,
+        ];
 
-        return $this->sendRequest('POST', $this->endpoint($endpoint), []);
+        return $this->sendRequest('POST', $this->endpoint('invoice?operation=void'), $payload);
     }
 
     /**
