@@ -84,7 +84,7 @@ class InvoiceClient extends BaseClient
      */
     public function void(string $qboInvoiceId, string $syncToken): object
     {
-        if (empty($syncToken)) {
+        if ($syncToken === '' || $syncToken === null) {
             throw new \InvalidArgumentException('syncToken is required to void an invoice.');
         }
 
