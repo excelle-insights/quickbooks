@@ -21,7 +21,7 @@ class JournalEntryClient extends BaseClient
                 ? ['value' => $data['currency']]
                 : null,
             'Line' => $this->buildLines($data['lines']),
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
 
         return $this->sendRequest(
             'POST',
@@ -66,18 +66,27 @@ class JournalEntryClient extends BaseClient
                 ? 'Debit'
                 : 'Credit';
 
+            $lineDetail = array_filter([
+                'PostingType' => $postingType,
+                'AccountRef' => array_filter([
+                    'value' => $line['account_qbo_id'],
+                    'name'  => $line['account_name'] ?? null,
+                ], fn($v) => $v !== null),
+            ], fn($v) => $v !== null);
+
+            if (!empty($line['entity'])) {
+                $lineDetail['Entity'] = [
+                    'Type'      => $line['entity']['type'] ?? 'Customer',
+                    'EntityRef' => ['value' => $line['entity']['value']],
+                ];
+            }
+
             $payloadLines[] = array_filter([
                 'DetailType' => 'JournalEntryLineDetail',
                 'Amount'    => $amount,
                 'Description' => $line['description'] ?? null,
-                'JournalEntryLineDetail' => array_filter([
-                    'PostingType' => $postingType,
-                    'AccountRef' => array_filter([
-                        'value' => $line['account_qbo_id'],
-                        'name'  => $line['account_name'] ?? null,
-                    ], fn ($v) => $v !== null),
-                ]),
-            ], fn ($v) => $v !== null);
+                'JournalEntryLineDetail' => $lineDetail,
+            ], fn($v) => $v !== null);
         }
 
         return $payloadLines;
