@@ -80,22 +80,15 @@ class InvoiceClient extends BaseClient
     }
 
     /**
-     * Void or deactivate an invoice
+     * Void an invoice in QuickBooks Online
+     *
+     * Uses the dedicated QBO void endpoint: POST /invoice/{id}/void
      */
     public function void(string $qboInvoiceId, string $syncToken): object
     {
-        if ($syncToken === '' || $syncToken === null) {
-            throw new \InvalidArgumentException('syncToken is required to void an invoice.');
-        }
+        $endpoint = 'invoice/' . urlencode($qboInvoiceId) . '/void';
 
-        $payload = [
-            'Id'        => $qboInvoiceId,
-            'SyncToken' => $syncToken,
-            'sparse'    => true,
-            'PrivateNote' => 'Voided locally'
-        ];
-
-        return $this->sendRequest('POST', $this->endpoint('invoice'), $payload);
+        return $this->sendRequest('POST', $this->endpoint($endpoint), []);
     }
 
     /**
