@@ -77,8 +77,6 @@ class InvoiceSyncService
         }
         $data['items'] = $items;
 
-        echo "Output here: " . json_encode($data) . "\n";
-
         // Load customer (local source of truth)
         $customer = $this->customerRepo->find(
             (int) $data['qbo_customer_id']
