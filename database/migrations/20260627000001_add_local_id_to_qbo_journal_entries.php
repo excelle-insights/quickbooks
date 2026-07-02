@@ -15,10 +15,9 @@ final class AddLocalIdToQboJournalEntries extends AbstractMigration
             $table
                 ->addColumn('local_id', 'integer', [
                     'after' => 'id',
-                    'null' => false,
+                    'null' => true,
                     'comment' => 'Id of local record used to create this journal entry',
                 ])
-                ->addIndex(['local_id'], ['unique' => true])
                 ->update();
         }
     }
