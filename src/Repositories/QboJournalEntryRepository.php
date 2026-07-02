@@ -20,6 +20,7 @@ class QboJournalEntryRepository
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO {$this->table} (
+                local_id,
                 qbo_company_id,
                 txn_date,
                 doc_number,
@@ -28,11 +29,12 @@ class QboJournalEntryRepository
                 created_at,
                 updated_at
             ) VALUES (
-                ?, ?, ?, ?, 'pending', NOW(), NOW()
+                ?, ?, ?, ?, ?, 'pending', NOW(), NOW()
             )
         ");
 
         $stmt->execute([
+            $data['local_id'],
             $data['qbo_company_id'],
             $data['txn_date'],
             $data['doc_number'] ?? null,
@@ -108,6 +110,19 @@ class QboJournalEntryRepository
             "SELECT * FROM {$this->table} WHERE qbo_id = ?"
         );
         $stmt->execute([$qboId]);
+
+        return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
+    }
+
+    /**
+     * Find by local_id (the source record ID)
+     */
+    public function findByLocalId(int $localId): ?object
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT * FROM {$this->table} WHERE local_id = ?"
+        );
+        $stmt->execute([$localId]);
 
         return $stmt->fetch(PDO::FETCH_OBJ) ?: null;
     }

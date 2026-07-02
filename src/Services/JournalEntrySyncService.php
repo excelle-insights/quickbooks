@@ -19,6 +19,17 @@ class JournalEntrySyncService
      */
     public function create(array $data): object
     {
+        // 0️⃣ Prevent duplicate: skip if local_id already exists
+        $existing = $this->entries->findByLocalId($data['local_id']);
+        if ($existing) {
+            return (object) [
+                'status'   => 'duplicate',
+                'local_id' => $existing->id,
+                'qbo_id'   => $existing->qbo_id,
+                'existing' => $existing,
+            ];
+        }
+
         // 1️⃣ Create local journal entry header
         $journalEntryId = $this->entries->create($data);
 
@@ -43,10 +54,11 @@ class JournalEntrySyncService
             );
 
             return (object) [
-                'status'        => 'synced',
-                'local_id'      => $journalEntryId,
-                'qbo_id'        => $response->JournalEntry->Id,
-                'journal_entry' => $response->JournalEntry
+                'status'          => 'synced',
+                'local_id'        => $journalEntryId,
+                'source_local_id' => $data['local_id'],
+                'qbo_id'          => $response->JournalEntry->Id,
+                'journal_entry'   => $response->JournalEntry
             ];
 
         } catch (\Throwable $e) {
@@ -59,9 +71,10 @@ class JournalEntrySyncService
             );
 
             return (object) [
-                'status'   => 'pending',
-                'local_id' => $journalEntryId,
-                'error'    => $e->getMessage()
+                'status'          => 'pending',
+                'local_id'        => $journalEntryId,
+                'source_local_id' => $data['local_id'],
+                'error'           => $e->getMessage()
             ];
         }
     }
