@@ -136,6 +136,54 @@ class InvoiceSyncService
         return $qboInvoice;
     }
 
+    public function update(array $data): object
+    {
+        $localId = $data['local_id'] ?? null;
+        if (!$localId) {
+            return (object) ['status' => 'error', 'error' => 'local_id is required'];
+        }
+
+        $existing = $this->invoiceRepo->findByLocalId($localId);
+        if (!$existing) {
+            return (object) ['status' => 'error', 'error' => 'Invoice not found'];
+        }
+
+        $this->invoiceRepo->update((int) $existing->id, $data);
+
+        try {
+            $qboInvoice = $this->invoiceClient->getById($existing->qbo_id);
+            $syncToken = $qboInvoice->Invoice->SyncToken ?? null;
+
+            $qboResult = $this->invoiceClient->update(
+                $existing->qbo_id,
+                $syncToken,
+                $data
+            );
+
+            $newSyncToken = $qboResult->Invoice->SyncToken ?? $syncToken;
+
+            $this->invoiceRepo->markSynced(
+                (int) $existing->id,
+                $existing->qbo_id,
+                $newSyncToken,
+                $qboResult->Invoice->TotalAmt ?? 0
+            );
+
+            return (object) [
+                'status'   => 'synced',
+                'local_id' => $localId,
+                'qbo_id'   => $existing->qbo_id,
+            ];
+        } catch (\Throwable $e) {
+            error_log("QBO Invoice update failed: " . $e->getMessage());
+            return (object) [
+                'status'   => 'failed',
+                'local_id' => $localId,
+                'error'    => $e->getMessage(),
+            ];
+        }
+    }
+
     public function void(int $localId): object
     {
         $invoice = $this->invoiceRepo->findByLocalId($localId);
