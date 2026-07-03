@@ -96,6 +96,31 @@ class InvoiceClient extends BaseClient
     }
 
     /**
+     * Update an invoice via sparse update in QuickBooks
+     */
+    public function update(string $qboInvoiceId, string $syncToken, array $data): object
+    {
+        if (empty($syncToken)) {
+            throw new \InvalidArgumentException('syncToken is required to update an invoice.');
+        }
+
+        $payload = array_filter([
+            'Id'          => $qboInvoiceId,
+            'SyncToken'   => $syncToken,
+            'sparse'      => true,
+            'TxnDate'     => $data['txn_date'] ?? null,
+            'DueDate'     => $data['due_date'] ?? null,
+            'DocNumber'   => $data['invoice_number'] ?? null,
+            'PrivateNote' => $data['notes'] ?? null,
+            'CustomerRef' => isset($data['customer_qbo_id'])
+                ? ['value' => $data['customer_qbo_id']]
+                : null,
+        ], fn($v) => $v !== null);
+
+        return $this->sendRequest('POST', $this->endpoint('invoice'), $payload);
+    }
+
+    /**
      * Build QBO line items from local items
      */
     private function buildLines(array $items): array
