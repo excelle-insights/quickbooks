@@ -100,7 +100,7 @@ class InvoiceClient extends BaseClient
      */
     public function update(string $qboInvoiceId, string $syncToken, array $data): object
     {
-        if (empty($syncToken)) {
+        if ($syncToken === '' || $syncToken === null) {
             throw new \InvalidArgumentException('syncToken is required to update an invoice.');
         }
 
