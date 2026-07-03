@@ -148,6 +148,54 @@ class InvoiceSyncService
             return (object) ['status' => 'error', 'error' => 'Invoice not found'];
         }
 
+        if (!empty($data['items'])) {
+            $items = [];
+            foreach ($data['items'] as $item) {
+                // Resolve item
+                if (!empty($item['qbo_item_id'])) {
+                    $qbo_item = $this->itemRepo->find($item['qbo_item_id']);
+                    if ($qbo_item && $qbo_item->qbo_id) {
+                        $item['item_id'] = $qbo_item->qbo_id;
+                    }
+                }
+
+                // Resolve class
+                if (!empty($item['qbo_class_id'])) {
+                    $class = $this->classRepo->find($item['qbo_class_id']);
+                    if ($class && $class->qbo_id) {
+                        $item['class_qbo_id'] = $class->qbo_id;
+                    } else {
+                        throw new \RuntimeException(
+                            "Class must be synced before using it in invoice."
+                        );
+                    }
+                }
+
+                // Resolve tax
+                $taxRepo = new QboTaxCodeRepository($this->pdo);
+                if (!empty($item['qbo_tax_id'])) {
+                    $tax = $taxRepo->find($item['qbo_tax_id']);
+                    if ($tax && $tax->qbo_id) {
+                        $item['tax_qbo_id'] = $tax->qbo_id;
+                    } else {
+                        throw new \RuntimeException(
+                            "Tax code must be synced before using it in invoice."
+                        );
+                    }
+                }
+
+                $items[] = $item;
+            }
+            $data['items'] = $items;
+
+            // Replace local items
+            $this->invoiceItemRepo->deleteByInvoice((int) $existing->id);
+            foreach ($data['items'] as $item) {
+                $item['qbo_invoice_id'] = $existing->id;
+                $this->invoiceItemRepo->create($item);
+            }
+        }
+
         $this->invoiceRepo->update((int) $existing->id, $data);
 
         try {

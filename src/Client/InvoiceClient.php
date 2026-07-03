@@ -115,6 +115,9 @@ class InvoiceClient extends BaseClient
             'CustomerRef' => isset($data['customer_qbo_id'])
                 ? ['value' => $data['customer_qbo_id']]
                 : null,
+            'Line'        => !empty($data['items'])
+                ? $this->buildLines($data['items'])
+                : null,
         ], fn($v) => $v !== null);
 
         return $this->sendRequest('POST', $this->endpoint('invoice'), $payload);
