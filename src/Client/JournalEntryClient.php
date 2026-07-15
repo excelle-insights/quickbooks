@@ -46,7 +46,7 @@ class JournalEntryClient extends BaseClient
      */
     public function update(string $qboJournalEntryId, string $syncToken, array $data): object
     {
-        if (empty($syncToken)) {
+        if ($syncToken === '' || $syncToken === null) {
             throw new \InvalidArgumentException('syncToken is required to update a journal entry.');
         }
 
