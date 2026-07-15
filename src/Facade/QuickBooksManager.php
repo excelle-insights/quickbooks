@@ -451,6 +451,31 @@ class QuickBooksManager
         return $service->create($data);
     }
 
+    public function updateJournalEntry(array $data): object
+    {
+        if (empty($data['qbo_company_id'])) {
+            throw new \InvalidArgumentException('qbo_company_id is required');
+        }
+
+        $jeRepo     = new QboJournalEntryRepository($this->pdo);
+        $jeItemRepo = new QboJournalEntryLineRepository($this->pdo);
+
+        $client = new JournalEntryClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new JournalEntrySyncService(
+            $jeRepo,
+            $jeItemRepo,
+            $client
+        );
+
+        return $service->update($data);
+    }
+
     /**
      * -------------------------
      * Vendors

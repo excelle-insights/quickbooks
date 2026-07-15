@@ -115,6 +115,29 @@ class QboJournalEntryRepository
     }
 
     /**
+     * Update local journal entry header
+     */
+    public function update(int $id, array $data): void
+    {
+        $stmt = $this->pdo->prepare("
+            UPDATE {$this->table}
+            SET
+                txn_date = ?,
+                doc_number = ?,
+                currency = ?,
+                updated_at = NOW()
+            WHERE id = ?
+        ");
+
+        $stmt->execute([
+            $data['txn_date'],
+            $data['doc_number'] ?? null,
+            $data['currency'] ?? null,
+            $id,
+        ]);
+    }
+
+    /**
      * Find by local_id (the source record ID)
      */
     public function findByLocalId(int $localId): ?object
