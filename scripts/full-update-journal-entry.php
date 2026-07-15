@@ -6,10 +6,9 @@ use ExcelleInsights\QuickBooks\Facade\QuickBooksManager;
 
 $qbo = new QuickBooksManager();
 
-// ── Step 1: Create a journal entry ──
 $data = [
     'qbo_company_id' => 1,
-    'local_id'       => time(), // unique source ID
+    'local_id'       => time(),
     'lines' => [
         [
             'description' => 'Initial debit line',
@@ -23,7 +22,7 @@ $data = [
         ],
     ],
     'txn_date'   => date('Y-m-d'),
-    'doc_number' => 'JE-UPDATE-TEST',
+    'doc_number' => 'JE-FULL-TEST',
 ];
 
 $created = $qbo->createJournalEntry($data);
@@ -35,30 +34,12 @@ if ($created->status !== 'synced') {
 
 echo "Created JE [{$created->source_local_id}] -> QBO ID: {$created->qbo_id}\n";
 
-// ── Step 2: Sparse update (header only) ──
-$updateHeader = [
-    'qbo_company_id' => 1,
-    'local_id'       => $created->source_local_id,
-    'txn_date'       => date('Y-m-d', strtotime('+1 day')),
-    'doc_number'     => 'JE-UPDATE-TEST-MODIFIED',
-    'notes'          => 'Updated private note',
-];
-
-$updated = $qbo->updateJournalEntry($updateHeader);
-
-if ($updated->status === 'synced') {
-    echo "Header update synced: QBO ID {$updated->qbo_id}\n";
-} else {
-    echo "Header update failed: {$updated->error}\n";
-}
-
-// ── Step 3: Full update (header + lines replaced) ──
 $updateFull = [
     'qbo_company_id' => 1,
     'local_id'       => $created->source_local_id,
     'txn_date'       => date('Y-m-d'),
-    'doc_number'     => 'JE-UPDATE-TEST-FULL',
-    'notes'          => 'Full update with new lines',
+    'doc_number'     => 'JE-FULL-TEST-MODIFIED',
+    'notes'          => 'Full update — header and lines replaced',
     'lines' => [
         [
             'description' => 'Replaced debit line',
@@ -73,12 +54,10 @@ $updateFull = [
     ],
 ];
 
-$updatedFull = $qbo->updateJournalEntry($updateFull);
+$updated = $qbo->updateJournalEntry($updateFull);
 
-if ($updatedFull->status === 'synced') {
-    echo "Full update synced: QBO ID {$updatedFull->qbo_id}\n";
+if ($updated->status === 'synced') {
+    echo "Full update synced: QBO ID {$updated->qbo_id}\n";
 } else {
-    echo "Full update failed: {$updatedFull->error}\n";
+    echo "Full update failed: {$updated->error}\n";
 }
-
-echo "\nDone.\n";
