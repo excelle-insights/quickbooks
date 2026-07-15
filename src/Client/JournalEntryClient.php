@@ -42,6 +42,33 @@ class JournalEntryClient extends BaseClient
     }
 
     /**
+     * Update a journal entry via sparse update in QuickBooks
+     */
+    public function update(string $qboJournalEntryId, string $syncToken, array $data): object
+    {
+        if (empty($syncToken)) {
+            throw new \InvalidArgumentException('syncToken is required to update a journal entry.');
+        }
+
+        $payload = array_filter([
+            'Id'          => $qboJournalEntryId,
+            'SyncToken'   => $syncToken,
+            'sparse'      => true,
+            'TxnDate'     => $data['txn_date'] ?? null,
+            'DocNumber'   => $data['doc_number'] ?? null,
+            'PrivateNote' => $data['notes'] ?? null,
+            'CurrencyRef' => isset($data['currency'])
+                ? ['value' => $data['currency']]
+                : null,
+            'Line'        => !empty($data['lines'])
+                ? $this->buildLines($data['lines'])
+                : null,
+        ], fn($v) => $v !== null);
+
+        return $this->sendRequest('POST', $this->endpoint('journalentry'), $payload);
+    }
+
+    /**
      * Build QBO journal entry lines
      */
     private function buildLines(array $lines): array
