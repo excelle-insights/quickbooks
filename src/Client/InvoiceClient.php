@@ -80,6 +80,14 @@ class InvoiceClient extends BaseClient
     }
 
     /**
+     * Run an arbitrary QBO query
+     */
+    public function query(string $query): object
+    {
+        return $this->sendRequest('GET', $this->endpoint('query?query=' . rawurlencode($query)));
+    }
+
+    /**
      * Void an invoice in QuickBooks Online
      *
      * POST /invoice?operation=void&minorversion=75
