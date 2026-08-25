@@ -51,7 +51,7 @@ class DefaultHttpClient implements HttpClientInterface
             curl_setopt(
                 $ch,
                 CURLOPT_POSTFIELDS,
-                is_array($body) ? json_encode($body) : $body
+                is_array($body) ? json_encode($body, JSON_INVALID_UTF8_SUBSTITUTE) : $body
             );
         }
 
