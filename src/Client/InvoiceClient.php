@@ -80,20 +80,53 @@ class InvoiceClient extends BaseClient
     }
 
     /**
-     * Void or deactivate an invoice
+     * Run an arbitrary QBO query
+     */
+    public function query(string $query): object
+    {
+        return $this->sendRequest('GET', $this->endpoint('query?query=' . rawurlencode($query)));
+    }
+
+    /**
+     * Void an invoice in QuickBooks Online
+     *
+     * POST /invoice?operation=void&minorversion=75
+     * with body { SyncToken, Id }
      */
     public function void(string $qboInvoiceId, string $syncToken): object
     {
-        if (empty($syncToken)) {
-            throw new \InvalidArgumentException('syncToken is required to void an invoice.');
-        }
-
         $payload = [
             'Id'        => $qboInvoiceId,
             'SyncToken' => $syncToken,
-            'sparse'    => true,
-            'PrivateNote' => 'Voided locally'
         ];
+
+        return $this->sendRequest('POST', $this->endpoint('invoice?operation=void'), $payload);
+    }
+
+    /**
+     * Update an invoice via sparse update in QuickBooks
+     */
+    public function update(string $qboInvoiceId, string $syncToken, array $data): object
+    {
+        if ($syncToken === '' || $syncToken === null) {
+            throw new \InvalidArgumentException('syncToken is required to update an invoice');
+        }
+
+        $payload = array_filter([
+            'Id'          => $qboInvoiceId,
+            'SyncToken'   => $syncToken,
+            'sparse'      => true,
+            'TxnDate'     => $data['txn_date'] ?? null,
+            'DueDate'     => $data['due_date'] ?? null,
+            'DocNumber'   => $data['invoice_number'] ?? null,
+            'PrivateNote' => $data['notes'] ?? null,
+            'CustomerRef' => isset($data['customer_qbo_id'])
+                ? ['value' => $data['customer_qbo_id']]
+                : null,
+            'Line'        => !empty($data['items'])
+                ? $this->buildLines($data['items'])
+                : null,
+        ], fn($v) => $v !== null);
 
         return $this->sendRequest('POST', $this->endpoint('invoice'), $payload);
     }

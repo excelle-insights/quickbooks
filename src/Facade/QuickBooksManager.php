@@ -236,10 +236,69 @@ class QuickBooksManager
         return $client->getById($id);
     }
 
+    public function voidInvoice(int $localId): object
+    {
+        $invoiceRepo     = new QboInvoiceRepository($this->pdo);
+        $invoiceItemRepo = new QboInvoiceItemRepository($this->pdo);
+        $customerRepo    = new QboCustomerRepository($this->pdo);
+        $classRepo       = new QboClassRepository($this->pdo);
+        $itemRepo        = new QboItemRepository($this->pdo);
+
+        $client = new InvoiceClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new InvoiceSyncService(
+            $invoiceRepo,
+            $invoiceItemRepo,
+            $customerRepo,
+            $classRepo,
+            $itemRepo,
+            $client,
+            $this->pdo
+        );
+
+        return $service->void($localId);
+    }
+
+    public function updateInvoice(array $data): object
+    {
+        if (empty($data['qbo_company_id'])) {
+            throw new \InvalidArgumentException('qbo_company_id is required');
+        }
+
+        $invoiceRepo     = new QboInvoiceRepository($this->pdo);
+        $invoiceItemRepo = new QboInvoiceItemRepository($this->pdo);
+        $customerRepo    = new QboCustomerRepository($this->pdo);
+        $classRepo       = new QboClassRepository($this->pdo);
+        $itemRepo        = new QboItemRepository($this->pdo);
+
+        $client = new InvoiceClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new InvoiceSyncService(
+            $invoiceRepo,
+            $invoiceItemRepo,
+            $customerRepo,
+            $classRepo,
+            $itemRepo,
+            $client,
+            $this->pdo
+        );
+
+        return $service->update($data);
+    }
+
     /**
      * -------------------------
      * Payments
-     * -------------------------
      */
     public function createPayment(array $data): object
     {
@@ -272,6 +331,46 @@ class QuickBooksManager
         );
 
         return $service->create($data);
+    }
+
+    public function getPayment($id)
+    {
+        $client = new PaymentClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+        return $client->getById($id);
+    }
+
+    public function updatePayment(array $data): object
+    {
+        if (empty($data['qbo_company_id'])) {
+            throw new \InvalidArgumentException('qbo_company_id is required');
+        }
+
+        $paymentRepo     = new QboPaymentRepository($this->pdo);
+        $paymentItemRepo = new QboPaymentItemRepository($this->pdo);
+        $customerRepo    = new QboCustomerRepository($this->pdo);
+        $invoiceRepo     = new QboInvoiceRepository($this->pdo);
+
+        $client = new PaymentClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new PaymentSyncService(
+            $paymentRepo,
+            $paymentItemRepo,
+            $customerRepo,
+            $invoiceRepo,
+            $client
+        );
+
+        return $service->update($data);
     }
 
     /**
@@ -350,6 +449,31 @@ class QuickBooksManager
         );
 
         return $service->create($data);
+    }
+
+    public function updateJournalEntry(array $data): object
+    {
+        if (empty($data['qbo_company_id'])) {
+            throw new \InvalidArgumentException('qbo_company_id is required');
+        }
+
+        $jeRepo     = new QboJournalEntryRepository($this->pdo);
+        $jeItemRepo = new QboJournalEntryLineRepository($this->pdo);
+
+        $client = new JournalEntryClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        $service = new JournalEntrySyncService(
+            $jeRepo,
+            $jeItemRepo,
+            $client
+        );
+
+        return $service->update($data);
     }
 
     /**

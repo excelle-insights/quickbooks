@@ -49,9 +49,11 @@ class PaymentClient extends BaseClient
             'CustomerRef' => [
                 'value' => $data['customer_qbo_id']
             ],
+            'PaymentMethodRef' => [
+                'value' => $data['payment_method_qbo_id']
+            ],
             'TotalAmt' => (float) $data['amount'],
             'TxnDate' => $data['txn_date'] ?? date('Y-m-d'),
-            'PaymentRefNum' => $data['transaction_ref'] ?? null,
             'DepositToAccountRef' => [
                 'value' => $data['bank_account'] ?? null
             ],
@@ -98,6 +100,34 @@ class PaymentClient extends BaseClient
             'GET',
             $this->endpoint('query?query=' . rawurlencode($query))
         );
+    }
+
+    /**
+     * Update a payment via sparse update in QuickBooks
+     */
+    public function update(string $qboPaymentId, string $syncToken, array $data): object
+    {
+        if (empty($syncToken)) {
+            throw new \InvalidArgumentException('syncToken is required to update a payment.');
+        }
+
+        $payload = array_filter([
+            'Id' => $qboPaymentId,
+            'SyncToken' => $syncToken,
+            'sparse' => true,
+            'TotalAmt' => isset($data['total_amount']) ? (float) $data['total_amount'] : null,
+            'TxnDate' => $data['txn_date'] ?? null,
+            'PaymentRefNum' => $data['payment_ref'] ?? null,
+            'PaymentMethodRef' => isset($data['payment_method_qbo_id'])
+                ? ['value' => $data['payment_method_qbo_id']]
+                : null,
+            'DepositToAccountRef' => isset($data['deposit_account_id'])
+                ? ['value' => $data['deposit_account_id']]
+                : null,
+            'PrivateNote' => $data['private_note'] ?? null,
+        ], fn($v) => $v !== null);
+
+        return $this->sendRequest('POST', $this->endpoint('payment'), $payload);
     }
 
     /**

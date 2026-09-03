@@ -85,8 +85,8 @@ abstract class BaseClient
      */
     protected function endpoint(string $path, int $minorVersion = 75): string
     {
-        // Check if path has 'query'
-        if (strpos($path, 'query') !== false) {
+        // Check if path already has query params (contains '?')
+        if (strpos($path, '?') !== false) {
             // If it already has query parameters, append minorversion with &
             return sprintf(
                 '/v3/company/%s/%s&minorversion=%d',

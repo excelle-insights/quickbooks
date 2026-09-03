@@ -21,7 +21,7 @@ class JournalEntryClient extends BaseClient
                 ? ['value' => $data['currency']]
                 : null,
             'Line' => $this->buildLines($data['lines']),
-        ], fn ($v) => $v !== null);
+        ], fn($v) => $v !== null);
 
         return $this->sendRequest(
             'POST',
@@ -39,6 +39,33 @@ class JournalEntryClient extends BaseClient
             'GET',
             $this->endpoint('journalentry/' . urlencode($qboJournalEntryId))
         );
+    }
+
+    /**
+     * Update a journal entry via sparse update in QuickBooks
+     */
+    public function update(string $qboJournalEntryId, string $syncToken, array $data): object
+    {
+        if ($syncToken === '' || $syncToken === null) {
+            throw new \InvalidArgumentException('syncToken is required to update a journal entry.');
+        }
+
+        $payload = array_filter([
+            'Id'          => $qboJournalEntryId,
+            'SyncToken'   => $syncToken,
+            'sparse'      => true,
+            'TxnDate'     => $data['txn_date'] ?? null,
+            'DocNumber'   => $data['doc_number'] ?? null,
+            'PrivateNote' => $data['notes'] ?? null,
+            'CurrencyRef' => isset($data['currency'])
+                ? ['value' => $data['currency']]
+                : null,
+            'Line'        => !empty($data['lines'])
+                ? $this->buildLines($data['lines'])
+                : null,
+        ], fn($v) => $v !== null);
+
+        return $this->sendRequest('POST', $this->endpoint('journalentry'), $payload);
     }
 
     /**
@@ -66,18 +93,27 @@ class JournalEntryClient extends BaseClient
                 ? 'Debit'
                 : 'Credit';
 
+            $lineDetail = array_filter([
+                'PostingType' => $postingType,
+                'AccountRef' => array_filter([
+                    'value' => $line['account_qbo_id'],
+                    'name'  => $line['account_name'] ?? null,
+                ], fn($v) => $v !== null),
+            ], fn($v) => $v !== null);
+
+            if (!empty($line['entity'])) {
+                $lineDetail['Entity'] = [
+                    'Type'      => $line['entity']['type'] ?? 'Customer',
+                    'EntityRef' => ['value' => $line['entity']['value']],
+                ];
+            }
+
             $payloadLines[] = array_filter([
                 'DetailType' => 'JournalEntryLineDetail',
                 'Amount'    => $amount,
                 'Description' => $line['description'] ?? null,
-                'JournalEntryLineDetail' => array_filter([
-                    'PostingType' => $postingType,
-                    'AccountRef' => array_filter([
-                        'value' => $line['account_qbo_id'],
-                        'name'  => $line['account_name'] ?? null,
-                    ], fn ($v) => $v !== null),
-                ]),
-            ], fn ($v) => $v !== null);
+                'JournalEntryLineDetail' => $lineDetail,
+            ], fn($v) => $v !== null);
         }
 
         return $payloadLines;

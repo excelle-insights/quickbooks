@@ -21,9 +21,9 @@ class QboPaymentRepository
     {
         $stmt = $this->pdo->prepare("
             INSERT INTO {$this->table}
-            (local_id, pay_id, qbo_customer_id, total_amount, txn_date, payment_ref, deposit_account_id, private_note, status, retry_count, error_message, last_attempt_at, created_at, updated_at)
+            (local_id, pay_id, qbo_customer_id, total_amount, txn_date, payment_ref, qbo_payment_method_id, deposit_account_id, private_note, status, retry_count, error_message, last_attempt_at, created_at, updated_at)
             VALUES
-            (:local_id, :pay_id, :qbo_customer_id, :total_amount, :txn_date, :payment_ref, :deposit_account_id, :private_note, :status, :retry_count, :error_message, :last_attempt_at, NOW(), NOW())
+            (:local_id, :pay_id, :qbo_customer_id, :total_amount, :txn_date, :payment_ref, :qbo_payment_method_id, :deposit_account_id, :private_note, :status, :retry_count, :error_message, :last_attempt_at, NOW(), NOW())
         ");
 
         $stmt->execute([
@@ -33,6 +33,7 @@ class QboPaymentRepository
             ':total_amount' => $data['total_amount'],
             ':txn_date' => $data['txn_date'] ?? null,
             ':payment_ref' => $data['payment_ref'] ?? null,
+            ':qbo_payment_method_id' => $data['qbo_payment_method_id'] ?? null,
             ':deposit_account_id' => $data['deposit_account_id'] ?? null,
             ':private_note' => $data['private_note'] ?? null,
             ':status' => $data['status'] ?? 'PENDING',

@@ -77,8 +77,6 @@ class InvoiceSyncService
         }
         $data['items'] = $items;
 
-        echo "Output here: " . json_encode($data) . "\n";
-
         // Load customer (local source of truth)
         $customer = $this->customerRepo->find(
             (int) $data['qbo_customer_id']
@@ -136,5 +134,141 @@ class InvoiceSyncService
     {
         $qboInvoice = $this->invoiceClient->getById($invoice_id);
         return $qboInvoice;
+    }
+
+    public function update(array $data): object
+    {
+        $localId = $data['local_id'] ?? null;
+        if (!$localId) {
+            return (object) ['status' => 'error', 'error' => 'local_id is required'];
+        }
+
+        $existing = $this->invoiceRepo->findByLocalId($localId);
+        if (!$existing) {
+            return (object) ['status' => 'error', 'error' => 'Invoice not found'];
+        }
+
+        if (!empty($data['items'])) {
+            $items = [];
+            foreach ($data['items'] as $item) {
+                // Resolve item
+                if (!empty($item['qbo_item_id'])) {
+                    $qbo_item = $this->itemRepo->find($item['qbo_item_id']);
+                    if ($qbo_item && $qbo_item->qbo_id) {
+                        $item['item_id'] = $qbo_item->qbo_id;
+                    }
+                }
+
+                // Resolve class
+                if (!empty($item['qbo_class_id'])) {
+                    $class = $this->classRepo->find($item['qbo_class_id']);
+                    if ($class && $class->qbo_id) {
+                        $item['class_qbo_id'] = $class->qbo_id;
+                    } else {
+                        throw new \RuntimeException(
+                            "Class must be synced before using it in invoice."
+                        );
+                    }
+                }
+
+                // Resolve tax
+                $taxRepo = new QboTaxCodeRepository($this->pdo);
+                if (!empty($item['qbo_tax_id'])) {
+                    $tax = $taxRepo->find($item['qbo_tax_id']);
+                    if ($tax && $tax->qbo_id) {
+                        $item['tax_qbo_id'] = $tax->qbo_id;
+                    } else {
+                        throw new \RuntimeException(
+                            "Tax code must be synced before using it in invoice."
+                        );
+                    }
+                }
+
+                $items[] = $item;
+            }
+            $data['items'] = $items;
+
+            // Replace local items
+            $this->invoiceItemRepo->deleteByInvoice((int) $existing->id);
+            foreach ($data['items'] as $item) {
+                $item['qbo_invoice_id'] = $existing->id;
+                $this->invoiceItemRepo->create($item);
+            }
+        }
+
+        $this->invoiceRepo->update((int) $existing->id, $data);
+
+        try {
+            $qboInvoice = $this->invoiceClient->getById($existing->qbo_id);
+            $syncToken = $qboInvoice->Invoice->SyncToken ?? null;
+
+            $qboResult = $this->invoiceClient->update(
+                $existing->qbo_id,
+                $syncToken,
+                $data
+            );
+
+            $newSyncToken = $qboResult->Invoice->SyncToken ?? $syncToken;
+
+            $this->invoiceRepo->markSynced(
+                (int) $existing->id,
+                $existing->qbo_id,
+                $newSyncToken,
+                $qboResult->Invoice->TotalAmt ?? 0
+            );
+
+            return (object) [
+                'status'   => 'synced',
+                'local_id' => $localId,
+                'qbo_id'   => $existing->qbo_id,
+            ];
+        } catch (\Throwable $e) {
+            error_log("QBO Invoice update failed: " . $e->getMessage());
+            return (object) [
+                'status'   => 'failed',
+                'local_id' => $localId,
+                'error'    => $e->getMessage(),
+            ];
+        }
+    }
+
+    public function void(int $localId): object
+    {
+        $invoice = $this->invoiceRepo->findByLocalId($localId);
+        if (!$invoice || !$invoice->qbo_id) {
+            return (object) [
+                'status' => 'error',
+                'error'  => 'Invoice not found or not yet synced to QBO',
+            ];
+        }
+
+        try {
+            $qboInvoice = $this->invoiceClient->getById($invoice->qbo_id);
+            $syncToken = $qboInvoice->Invoice->SyncToken ?? null;
+
+            $result = $this->invoiceClient->void($invoice->qbo_id, $syncToken);
+
+            $newSyncToken = $result->Invoice->SyncToken ?? $syncToken;
+
+            $this->invoiceRepo->markSynced(
+                (int) $invoice->id,
+                $invoice->qbo_id,
+                $newSyncToken,
+                $result->Invoice->TotalAmt ?? 0
+            );
+
+            return (object) [
+                'status'   => 'voided',
+                'local_id' => $localId,
+                'qbo_id'   => $invoice->qbo_id,
+            ];
+        } catch (\Throwable $e) {
+            error_log("QBO Invoice void failed: " . $e->getMessage());
+            return (object) [
+                'status'   => 'failed',
+                'local_id' => $localId,
+                'error'    => $e->getMessage(),
+            ];
+        }
     }
 }

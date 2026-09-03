@@ -46,6 +46,17 @@ class QboInvoiceItemRepository
     }
 
     /**
+     * Delete all items for an invoice
+     */
+    public function deleteByInvoice(int $invoiceId): void
+    {
+        $stmt = $this->pdo->prepare(
+            "DELETE FROM {$this->table} WHERE qbo_invoice_id = ?"
+        );
+        $stmt->execute([$invoiceId]);
+    }
+
+    /**
      * Get invoice items formatted for QuickBooks API
      */
     public function forInvoice(int $invoiceId): array
