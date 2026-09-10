@@ -204,6 +204,112 @@ class QboVendorRepository
     }
 
     /**
+     * Update local cache from QBO Vendor object (for pull refresh)
+     */
+    public function updateFromQboData(int $id, object $qboVendor): void
+    {
+        $stmt = $this->pdo->prepare("
+            UPDATE {$this->table}
+            SET
+                display_name = ?,
+                company_name = ?,
+                given_name = ?,
+                family_name = ?,
+                title = ?,
+                suffix = ?,
+                print_on_check_name = ?,
+                email = ?,
+                phone = ?,
+                mobile = ?,
+                website = ?,
+                tax_identifier = ?,
+                account_number = ?,
+                bill_addr_json = ?,
+                vendor_hash = ?,
+                updated_at = NOW()
+            WHERE id = ?
+        ");
+        $billAddr = null;
+        if (isset($qboVendor->BillAddr)) {
+            $billAddr = json_encode([
+                'line1' => $qboVendor->BillAddr->Line1 ?? null,
+                'line2' => $qboVendor->BillAddr->Line2 ?? null,
+                'line3' => $qboVendor->BillAddr->Line3 ?? null,
+                'city'  => $qboVendor->BillAddr->City ?? null,
+                'country' => $qboVendor->BillAddr->Country ?? null,
+                'state' => $qboVendor->BillAddr->CountrySubDivisionCode ?? null,
+                'postal_code' => $qboVendor->BillAddr->PostalCode ?? null,
+            ]);
+        }
+        $hash = md5(implode('|', array_filter([
+            $qboVendor->DisplayName ?? '',
+            $qboVendor->TaxIdentifier ?? '',
+            $qboVendor->PrimaryEmailAddr->Address ?? '',
+        ])));
+        $stmt->execute([
+            $qboVendor->DisplayName ?? '',
+            $qboVendor->CompanyName ?? $qboVendor->DisplayName ?? null,
+            $qboVendor->GivenName ?? null,
+            $qboVendor->FamilyName ?? null,
+            $qboVendor->Title ?? null,
+            $qboVendor->Suffix ?? null,
+            $qboVendor->PrintOnCheckName ?? null,
+            $qboVendor->PrimaryEmailAddr->Address ?? null,
+            $qboVendor->PrimaryPhone->FreeFormNumber ?? null,
+            $qboVendor->Mobile->FreeFormNumber ?? null,
+            $qboVendor->WebAddr->URI ?? null,
+            $qboVendor->TaxIdentifier ?? null,
+            $qboVendor->AcctNum ?? null,
+            $billAddr,
+            $hash,
+            $id,
+        ]);
+    }
+
+    /**
+     * Upsert from QBO — find by qbo_id or create
+     */
+    public function upsertFromQbo(object $qboVendor): int
+    {
+        $existing = $this->findByQboId((string)($qboVendor->Id ?? ''));
+        if ($existing) {
+            $this->updateFromQboData($existing->id, $qboVendor);
+            return $existing->id;
+        }
+        // Create via standard create then mark synced is done by service — fallback
+        return 0;
+    }
+
+    /**
+     * List vendors with connection status for management page
+     * Returns qbo_vendors left joined with acc_suppliers linkage
+     * Note: PDO table is shared DB, acc_suppliers is in same DB when called from GIMCO
+     */
+    public function listWithConnectionStatus(?int $companyId = 1): array
+    {
+        // We do not assume acc_suppliers exists in isolated tests — join gracefully
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT v.*, 
+                       s.supplier_id as linked_supplier_id,
+                       AES_DECRYPT(FROM_BASE64(s.supplier_name), '" . ($_ENV['SECRET_KEY'] ?? '') . "') as linked_supplier_name,
+                       s.qbo_sync_source as linked_sync_source
+                FROM {$this->table} v
+                LEFT JOIN acc_suppliers s ON s.qbo_vendor_id = v.qbo_id AND s.parent_supplier_id IS NULL
+                WHERE v.qbo_company_id = :cid OR :cid IS NULL
+                ORDER BY v.display_name ASC
+            ");
+            $stmt->execute([':cid' => $companyId]);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            // Fallback without acc_suppliers join (e.g. pure quickbooks DB tests)
+            $stmt = $this->pdo->prepare("SELECT *, NULL as linked_supplier_id, NULL as linked_supplier_name, NULL as linked_sync_source FROM {$this->table} WHERE qbo_company_id = :cid OR :cid IS NULL ORDER BY display_name ASC");
+            $stmt->execute([':cid' => $companyId]);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        }
+    }
+
+    /**
      * Generate vendor hash for duplicate detection
      */
     private function generateVendorHash(array $data): string

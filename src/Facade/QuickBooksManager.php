@@ -515,6 +515,33 @@ class QuickBooksManager
     }
 
     /**
+     * Pull all QBO vendors into local qbo_vendors cache only (dropdown-only)
+     * NOT creating acc_suppliers rows. Use linkVendorToSupplier() to connect.
+     */
+    public function pullVendorsToCache(): array
+    {
+        $vendorRepo = new QboVendorRepository($this->pdo);
+        $client = new VendorClient($this->baseUrl, $this->companyId, $this->auth, $this->http);
+        $service = new VendorSyncService($vendorRepo, $client);
+        $resp = $client->getAll();
+        $results = [];
+        if (isset($resp->QueryResponse->Vendor)) {
+            $vendors = $resp->QueryResponse->Vendor;
+            if (!is_array($vendors)) $vendors = [$vendors];
+            foreach ($vendors as $v) {
+                try { $results[] = (array)$service->upsertFromQbo($v); } catch (\Throwable $e) { $results[] = ['error'=>$e->getMessage(),'qbo_id'=>$v->Id ?? null]; }
+            }
+        }
+        return $results;
+    }
+
+    public function listVendorsWithStatus(int $companyId = 1): array
+    {
+        $repo = new QboVendorRepository($this->pdo);
+        return $repo->listWithConnectionStatus($companyId);
+    }
+
+    /**
      * -------------------------
      * Classes
      * -------------------------
