@@ -477,6 +477,22 @@ class QuickBooksManager
     }
 
     /**
+     * Get the DocNumber of the most recent journal entry (by TxnDate).
+     * Returns null when no journal entries exist.
+     */
+    public function getLastJournalEntryDocNumber(): ?string
+    {
+        $client = new JournalEntryClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getLastDocNumber();
+    }
+
+    /**
      * -------------------------
      * Vendors
      * -------------------------
