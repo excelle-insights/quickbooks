@@ -493,6 +493,22 @@ class QuickBooksManager
     }
 
     /**
+     * Retrieve all journal entries from QuickBooks, optionally only those
+     * updated since a given time.
+     */
+    public function getAllJournalEntries(int $startPosition = 1, int $maxResults = 1000, ?string $updatedSince = null): object
+    {
+        $client = new JournalEntryClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getAll($startPosition, $maxResults, $updatedSince);
+    }
+
+    /**
      * -------------------------
      * Vendors
      * -------------------------

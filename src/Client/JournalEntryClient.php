@@ -75,6 +75,29 @@ class JournalEntryClient extends BaseClient
     }
 
     /**
+     * Retrieve all journal entries, optionally only those updated since a given time.
+     *
+     * @param int         $startPosition 1-based page start
+     * @param int         $maxResults    Page size (QBO maximum is 1000)
+     * @param string|null $updatedSince  QBO-formatted timestamp, e.g. 2024-01-01T00:00:00-07:00
+     */
+    public function getAll(int $startPosition = 1, int $maxResults = 1000, ?string $updatedSince = null): object
+    {
+        $query = 'SELECT * FROM JournalEntry';
+
+        if ($updatedSince !== null && trim($updatedSince) !== '') {
+            $query .= " WHERE MetaData.LastUpdatedTime >= '" . trim($updatedSince) . "'";
+        }
+
+        $query .= ' STARTPOSITION ' . $startPosition . ' MAXRESULTS ' . $maxResults;
+
+        return $this->sendRequest(
+            'GET',
+            $this->endpoint('query?query=' . rawurlencode($query))
+        );
+    }
+
+    /**
      * Update a journal entry via sparse update in QuickBooks
      */
     public function update(string $qboJournalEntryId, string $syncToken, array $data): object
