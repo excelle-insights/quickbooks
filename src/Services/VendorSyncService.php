@@ -17,23 +17,36 @@ class VendorSyncService
 
     /**
      * Create and sync vendor with QuickBooks
+     * Also provides upsertFromQbo for pull-only flow (dropdown-only, no acc_suppliers row)
      */
     public function create(array $data): object
     {
-        // 1️⃣ Check for existing vendors using multiple criteria
+        // 1️⃣ Check for existing vendors using multiple criteria (QBO side)
         $existingVendor = $this->findExistingVendor($data);
         
         if ($existingVendor) {
-            // Update local record with existing QBO vendor
-            $this->vendors->markSynced(
-                $this->vendors->create($data), // Create local record first
-                $existingVendor->Id,
-                $existingVendor->SyncToken ?? '1'
-            );
+            // Vendor already exists in QBO — upsert local cache and link, don't create duplicate local row
+            $existingLocal = $this->vendors->findByQboId($existingVendor->Id);
+            if ($existingLocal) {
+                // Already have local cache for this QBO vendor — just ensure synced
+                $this->vendors->markSynced($existingLocal->id, $existingVendor->Id, $existingVendor->SyncToken ?? '1');
+                // Also update local display fields from QBO (keep cache fresh)
+                $this->vendors->updateFromQboData($existingLocal->id, $existingVendor);
+                return (object) [
+                    'status'   => 'synced',
+                    'local_id' => $existingLocal->id,
+                    'qbo_id'   => $existingVendor->Id,
+                    'message'  => 'Vendor already exists in QuickBooks',
+                    'data'     => $existingVendor,
+                ];
+            }
+            // No local cache yet — create one and link to existing QBO vendor
+            $localId = $this->vendors->create($data);
+            $this->vendors->markSynced($localId, $existingVendor->Id, $existingVendor->SyncToken ?? '1');
 
             return (object) [
                 'status'   => 'synced',
-                'local_id' => $this->vendors->create($data),
+                'local_id' => $localId,
                 'qbo_id'   => $existingVendor->Id,
                 'message'  => 'Vendor already exists in QuickBooks',
                 'data'     => $existingVendor,
@@ -135,10 +148,73 @@ class VendorSyncService
     }
 
     /**
+     * Pull a QBO Vendor object into local qbo_vendors cache (dropdown-only, NOT acc_suppliers)
+     * Used by pull_qbo_vendors.php after change to not create acc_suppliers rows.
+     */
+    public function upsertFromQbo(object $qboVendor): object
+    {
+        // $qboVendor is the raw QBO Vendor (Id, DisplayName, etc.)
+        $qboId = $qboVendor->Id ?? null;
+        if (!$qboId) throw new \InvalidArgumentException('QBO Vendor Id is required');
+
+        $existing = $this->vendors->findByQboId((string)$qboId);
+        if ($existing) {
+            $this->vendors->updateFromQboData($existing->id, $qboVendor);
+            // Ensure status synced
+            $this->vendors->markSynced($existing->id, (string)$qboId, $qboVendor->SyncToken ?? $existing->sync_token ?? '1');
+            return (object)['status'=>'synced','local_id'=>$existing->id,'qbo_id'=>$qboId,'action'=>'updated','data'=>$qboVendor];
+        }
+
+        // Map QBO fields to local columns
+        $data = [
+            'qbo_company_id' => 1,
+            'display_name'   => $qboVendor->DisplayName ?? '',
+            'company_name'   => $qboVendor->CompanyName ?? $qboVendor->DisplayName ?? '',
+            'given_name'     => $qboVendor->GivenName ?? null,
+            'family_name'    => $qboVendor->FamilyName ?? null,
+            'title'          => $qboVendor->Title ?? null,
+            'suffix'         => $qboVendor->Suffix ?? null,
+            'print_on_check_name' => $qboVendor->PrintOnCheckName ?? null,
+            'email'          => $qboVendor->PrimaryEmailAddr->Address ?? null,
+            'phone'          => $qboVendor->PrimaryPhone->FreeFormNumber ?? null,
+            'mobile'         => $qboVendor->Mobile->FreeFormNumber ?? null,
+            'website'        => $qboVendor->WebAddr->URI ?? null,
+            'tax_identifier' => $qboVendor->TaxIdentifier ?? null,
+            'account_number' => $qboVendor->AcctNum ?? null,
+            'bill_addr'      => isset($qboVendor->BillAddr) ? [
+                'line1' => $qboVendor->BillAddr->Line1 ?? null,
+                'line2' => $qboVendor->BillAddr->Line2 ?? null,
+                'line3' => $qboVendor->BillAddr->Line3 ?? null,
+                'city'  => $qboVendor->BillAddr->City ?? null,
+                'country' => $qboVendor->BillAddr->Country ?? null,
+                'state' => $qboVendor->BillAddr->CountrySubDivisionCode ?? null,
+                'postal_code' => $qboVendor->BillAddr->PostalCode ?? null,
+            ] : null,
+        ];
+
+        $localId = $this->vendors->create($data);
+        $this->vendors->markSynced($localId, (string)$qboId, $qboVendor->SyncToken ?? '1');
+
+        return (object)['status'=>'synced','local_id'=>$localId,'qbo_id'=>$qboId,'action'=>'imported','data'=>$qboVendor];
+    }
+
+    /**
      * Find existing vendor using multiple criteria (before creation attempt)
      */
     private function findExistingVendor(array $data): ?object
     {
+        // First check local cache by hash / unique fields to avoid QBO call for known vendors
+        $local = $this->vendors->findByUniqueFields($data['display_name'] ?? null, $data['tax_identifier'] ?? null, $data['email'] ?? null);
+        if ($local && !empty($local->qbo_id)) {
+            // We have a synced local cache — try to fetch full QBO record by that qbo_id to confirm still exists
+            try {
+                $full = $this->qbo->getById($local->qbo_id);
+                if (isset($full->Vendor)) return $full->Vendor;
+            } catch (Throwable $e) {
+                // Fall through to QBO search
+            }
+        }
+
         try {
             $criteria = [];
             

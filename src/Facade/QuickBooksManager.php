@@ -477,6 +477,22 @@ class QuickBooksManager
     }
 
     /**
+     * Get the DocNumber of the most recent journal entry (by TxnDate).
+     * Returns null when no journal entries exist.
+     */
+    public function getLastJournalEntryDocNumber(): ?string
+    {
+        $client = new JournalEntryClient(
+            $this->baseUrl,
+            $this->companyId,
+            $this->auth,
+            $this->http
+        );
+
+        return $client->getLastDocNumber();
+    }
+
+    /**
      * -------------------------
      * Vendors
      * -------------------------
@@ -512,6 +528,33 @@ class QuickBooksManager
         );
 
         return $client->getAll();
+    }
+
+    /**
+     * Pull all QBO vendors into local qbo_vendors cache only (dropdown-only)
+     * NOT creating acc_suppliers rows. Use linkVendorToSupplier() to connect.
+     */
+    public function pullVendorsToCache(): array
+    {
+        $vendorRepo = new QboVendorRepository($this->pdo);
+        $client = new VendorClient($this->baseUrl, $this->companyId, $this->auth, $this->http);
+        $service = new VendorSyncService($vendorRepo, $client);
+        $resp = $client->getAll();
+        $results = [];
+        if (isset($resp->QueryResponse->Vendor)) {
+            $vendors = $resp->QueryResponse->Vendor;
+            if (!is_array($vendors)) $vendors = [$vendors];
+            foreach ($vendors as $v) {
+                try { $results[] = (array)$service->upsertFromQbo($v); } catch (\Throwable $e) { $results[] = ['error'=>$e->getMessage(),'qbo_id'=>$v->Id ?? null]; }
+            }
+        }
+        return $results;
+    }
+
+    public function listVendorsWithStatus(int $companyId = 1): array
+    {
+        $repo = new QboVendorRepository($this->pdo);
+        return $repo->listWithConnectionStatus($companyId);
     }
 
     /**

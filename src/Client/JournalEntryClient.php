@@ -42,6 +42,26 @@ class JournalEntryClient extends BaseClient
     }
 
     /**
+     * Get the DocNumber of the most recent journal entry (by TxnDate).
+     * Returns null when no journal entries exist or none have a DocNumber.
+     */
+    public function getLastDocNumber(): ?string
+    {
+        $query = 'SELECT * FROM JournalEntry ORDERBY TxnDate DESC MAXRESULTS 1';
+
+        $response = $this->sendRequest(
+            'GET',
+            $this->endpoint('query?query=' . rawurlencode($query))
+        );
+
+        $entry = $response->QueryResponse->JournalEntry[0] ?? null;
+
+        return isset($entry->DocNumber) && $entry->DocNumber !== ''
+            ? (string) $entry->DocNumber
+            : null;
+    }
+
+    /**
      * Search journal entries by DocNumber
      */
     public function searchByDocNumber(string $docNumber): object
