@@ -80,6 +80,15 @@ class InvoiceClient extends BaseClient
     }
 
     /**
+     * Search invoices by DocNumber, returning the full Invoice entities
+     */
+    public function searchByDocNumber(string $docNumber): object
+    {
+        $query = "SELECT * FROM Invoice WHERE DocNumber = '" . trim($docNumber) . "'";
+        return $this->sendRequest('GET', $this->endpoint('query?query=' . rawurlencode($query)));
+    }
+
+    /**
      * Run an arbitrary QBO query
      */
     public function query(string $query): object
