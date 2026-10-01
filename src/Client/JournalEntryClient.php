@@ -42,6 +42,19 @@ class JournalEntryClient extends BaseClient
     }
 
     /**
+     * Search journal entries by DocNumber
+     */
+    public function searchByDocNumber(string $docNumber): object
+    {
+        $query = "SELECT * FROM JournalEntry WHERE DocNumber = '" . trim($docNumber) . "'";
+
+        return $this->sendRequest(
+            'GET',
+            $this->endpoint('query?query=' . rawurlencode($query))
+        );
+    }
+
+    /**
      * Update a journal entry via sparse update in QuickBooks
      */
     public function update(string $qboJournalEntryId, string $syncToken, array $data): object
